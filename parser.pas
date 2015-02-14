@@ -1,5 +1,7 @@
+{$mode objfpc} // so we can use the $result syntax for return values.
 {Sadece boolean expression parse eden bir program}
 program BoolExp;
+uses uast; // â† generate this with: `lua makenodes.lua > uast.pas`
 
 const TAB   = ^I;
 const CR    = ^M;
@@ -173,7 +175,7 @@ begin
         Match(')');
     end;
     if IsAlNum(Look) then
-    begin {TODO: Bu kýsmý fix et}
+    begin {TODO: Bu kÃ½smÃ½ fix et}
         //TempStr := GetName;
         //if UpCase(TempStr) = 'TRUE'     then BoolFactor := true;
         //if UpCase(TempStr) = 'FALSE'    then BoolFactor := false;
@@ -213,7 +215,7 @@ begin
    BoolTerm;
 end;
 
-function BoolExpression: boolean;
+function BoolExpression: TBoolExpr;
 begin
     BoolExpression := BoolTerm;
     while IsOrOp(Look) do
@@ -224,7 +226,7 @@ begin
         end;
     end;
     {
-    Boolean expressioný tanýmlayan grameri burda yazalým.
+    Boolean expressionÃ½ tanÃ½mlayan grameri burda yazalÃ½m.
     <b-expression> ::= <b-term> [<orop> <b-term>]*
     <b-term>       ::= <not-factor> [AND <not-factor>]*
     <not-factor>   ::= [NOT] <b-factor>
@@ -280,7 +282,7 @@ begin
     begin
         case Look of
             '*': Term := Term * Multiply;
-            '/': Term := Term div Divide; {Bu satýr gidip aþaðýdaki gelecek. Þimdilik bunla idare edelim}
+            '/': Term := Term div Divide; {Bu satÃ½r gidip aÃ¾aÃ°Ã½daki gelecek. Ãžimdilik bunla idare edelim}
             //'/': Term := Term / Divide;
         end;
     end;
@@ -310,49 +312,49 @@ begin
    end;
 end;
 
-procedure Assignment();
+function Assignment : TSyntax;
 begin
     Writeln('Assignment');
-    //BoolExpression;
+    result := NewAssignStmt();
 end;
 
-procedure Block(AbleToExecute: boolean); forward;
+// keyword consumes a token.
+function keyword(s:string; out tok:string) : boolean;
+  begin
+    tok := GetName;
+    result := tok = s;
+  end;
 
-procedure DoIf;
-var TempBool: boolean;
+
+function Block : TSyntax; forward;
+
+function DoIf : TSyntax;
+var condition, thenPart, elsePart : variant;
 begin
-    TempBool := BoolExpression;
-    if (TempBool) then
-    begin
-        Writeln('IF CASE TRUE. EXECUTE THE BLOCK');
-        Block(True);
-    end else
-    begin
-        Writeln('IF CASE FALSE. DON''T EXECUTE THE BLOCK');
-        Block(False);
-    end;
+    condition := BoolExpression;
+    thenPart := Block;
+    elsePart := null; //  TODO: parse 'ELSE'
+    result := NewIfStmt(condition, thenPart, elsePart);
 end;
 
-procedure DoWrite;
+function DoWrite : TSyntax;
 begin
-    Writeln('WRITE COMMAND EXECUTED');
+  WriteLn('WRITE COMMAND EXECUTED');
+  result := NewWriteStmt();
 end;
 
-procedure Block(AbleToExecute: boolean);
+function Block : TSyntax;
 begin
+    // TODO: compose a Block to hold the statements.
     Token := GetName;
     while (Token <> 'END') and (Token <> 'ENDIF') do
     begin
-        Write('AbleToExecute');Writeln(AbleToExecute);
-        if (AbleToExecute) then
-        begin
-            case Token of
-                'IF'    : DoIf;
-                'WRITE' : DoWrite;
-                else Assignment;
-            end;
-        end;
-        Token := GetName;
+      case Token of
+	'IF'	: result := DoIf;
+	'WRITE'	: result := DoWrite;
+	else result := Assignment;
+      end;
+      Token := GetName;
     end;
 end;
 
@@ -362,7 +364,10 @@ begin
     GetChar;
 end;
 
+var ast : TSyntax;
 begin
-    Init;
-    Block(True);
+  Init;
+  ast := Block;
+  // TODO: eval(ast);
+  ast.Free;
 end.
