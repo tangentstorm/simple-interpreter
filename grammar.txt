@@ -15,8 +15,3 @@
 <declarations>  ::= (<variable list>)*
 <variable list> ::= [<variable>]*
 <program>       ::= <declarations> <block>
-
-                              
-
-
-

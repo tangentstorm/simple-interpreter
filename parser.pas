@@ -9,7 +9,7 @@ var Look: char;
 var Token: String;
 
 function Expression: integer; Forward;
-                              
+
 procedure GetChar;
 begin
    Read(Look);
@@ -72,9 +72,9 @@ procedure NewLine;
 begin
     while Look in [CR, LF] do
     begin
-        GetChar;   
+        GetChar;
         SkipWhite;
-    end;  
+    end;
 end;
 
 function GetName: string;
@@ -83,7 +83,7 @@ begin
     TempStr := '';
     NewLine;
     if not IsAlpha(Look) then Expected('Name');
-        
+
     while IsAlNum(Look) do
     begin
         TempStr := TempStr + UpCase(Look);
@@ -102,7 +102,7 @@ begin
     while IsDigit(Look) do
     begin
         Val := 10 * Val + Ord(Look) - Ord('0');
-        GetChar; 
+        GetChar;
     end;
     GetNum := Val;
     SkipWhite;
@@ -145,7 +145,7 @@ end;
 
 function Equals: integer;
 begin
-   Match('=');   
+   Match('=');
    Equals := Expression;
 end;
 
@@ -158,10 +158,10 @@ begin
       case Look of
        '=': Relation := TempNumber  =    Equals;
        '<': Relation := TempNumber  <    Less;
-       '>': Relation := TempNumber  >    Greater;             
+       '>': Relation := TempNumber  >    Greater;
        '#': Relation := TempNumber  <>   NotEquals;
       end;
-   end;      
+   end;
 end;
 
 function BoolFactor: boolean;
@@ -171,14 +171,14 @@ begin
         Match('(');
         BoolFactor := Relation;
         Match(')');
-    end;    
+    end;
     if IsAlNum(Look) then
     begin {TODO: Bu kýsmý fix et}
         //TempStr := GetName;
         //if UpCase(TempStr) = 'TRUE'     then BoolFactor := true;
         //if UpCase(TempStr) = 'FALSE'    then BoolFactor := false;
         BoolFactor := Relation;
-    end;    
+    end;
 end;
 
 function NotFactor: boolean;
@@ -234,7 +234,7 @@ begin
     <term>         ::= <signed factor> [<mulop> factor]*
     <signed factor>::= [<addop>] <factor>
     <factor>       ::= <integer> | <variable> | (<b-expression>)
-    }   
+    }
 end;
 
 function Factor: integer;
@@ -245,7 +245,7 @@ begin
         BoolExpression;
         Match(')');
     end;
-    
+
     if IsAlpha(Look) then Token  := GetName;
     if IsDigit(Look) then Factor := GetNum;
 end;
@@ -269,7 +269,7 @@ end;
 
 function Divide: integer;
 begin
-   Match('/');   
+   Match('/');
    Divide := Factor;
 end;
 
@@ -281,7 +281,7 @@ begin
         case Look of
             '*': Term := Term * Multiply;
             '/': Term := Term div Divide; {Bu satýr gidip aþaðýdaki gelecek. Þimdilik bunla idare edelim}
-            //'/': Term := Term / Divide;            
+            //'/': Term := Term / Divide;
         end;
     end;
 end;
@@ -313,7 +313,7 @@ end;
 procedure Assignment();
 begin
     Writeln('Assignment');
-    //BoolExpression;    
+    //BoolExpression;
 end;
 
 procedure Block(AbleToExecute: boolean); forward;
@@ -326,10 +326,10 @@ begin
     begin
         Writeln('IF CASE TRUE. EXECUTE THE BLOCK');
         Block(True);
-    end else 
+    end else
     begin
         Writeln('IF CASE FALSE. DON''T EXECUTE THE BLOCK');
-        Block(False);    
+        Block(False);
     end;
 end;
 
@@ -339,18 +339,18 @@ begin
 end;
 
 procedure Block(AbleToExecute: boolean);
-begin      
-    Token := GetName;        
+begin
+    Token := GetName;
     while (Token <> 'END') and (Token <> 'ENDIF') do
-    begin        
-        Write('AbleToExecute');Writeln(AbleToExecute); 
+    begin
+        Write('AbleToExecute');Writeln(AbleToExecute);
         if (AbleToExecute) then
         begin
             case Token of
                 'IF'    : DoIf;
                 'WRITE' : DoWrite;
                 else Assignment;
-            end;        
+            end;
         end;
         Token := GetName;
     end;
@@ -368,6 +368,6 @@ var number: integer;
 
 var booltemp: boolean;
 begin
-    Init; 
+    Init;
     Block(True);
 end.
