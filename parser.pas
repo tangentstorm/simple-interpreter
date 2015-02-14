@@ -362,11 +362,6 @@ begin
     GetChar;
 end;
 
-var result: boolean;
-var exp:    string;
-var number: integer;
-
-var booltemp: boolean;
 begin
     Init;
     Block(True);
