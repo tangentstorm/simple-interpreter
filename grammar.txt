@@ -1,0 +1,22 @@
+<b-expression> ::= <b-term> [<orop> <b-term>]*
+<b-term>       ::= <not-factor> [AND <not-factor>]*
+<not-factor>   ::= [NOT] <b-factor>
+<b-factor>     ::= <b-literal> | <b-variable> | <relation>
+<relation>     ::= | <expression> [<relop> <expression]
+<expression>   ::= <term> [<addop> <term>]*
+<term>         ::= <signed factor> [<mulop> factor]*
+<signed factor>::= [<addop>] <factor>
+<factor>       ::= <integer> | <variable> | (<b-expression>)
+
+<if>        ::= IF <bool-expression> <block> [ ELSE <block>] ENDIF
+<while>     ::= WHILE <bool-expression> <block> ENDWHILE
+<block>     ::= ( <statement> )*
+<statement> ::= <if> | <while> | <assignment>
+<declarations>  ::= (<variable list>)*
+<variable list> ::= [<variable>]*
+<program>       ::= <declarations> <block>
+
+                              
+
+
+
