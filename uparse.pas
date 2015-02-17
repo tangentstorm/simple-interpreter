@@ -3,7 +3,8 @@
 unit uparse;
 interface uses uast;
 
-  function Block : Node;
+  function ParseProgram : Node;
+  function ParseBlock : Node;
 
 implementation
 
@@ -317,61 +318,71 @@ begin
       end;
    end;
 end;
-
+
+// eventually, this will take the place of expression.
 function ParseExpr : Node;
   begin
     result := NewIntExpr(Expression);
   end;
-
-function Assignment : Node;
-begin
-    Writeln('Assignment');
-    result := NewAssignStmt();
-end;
-
-// keyword consumes a token.
+
+// keyword consumes a word and checks that it matches the expected string s.
 function keyword(s:string; out tok:string) : boolean;
   begin
     tok := GetName;
     result := tok = s;
   end;
-
 
-function DoIf : Node;
-var condition, thenPart, elsePart : Node;
-begin
+// -- statements ---
+
+function ParseAssignStmt : Node;
+  begin
+    Writeln('Assignment');
+    result := NewAssignStmt();
+  end;
+
+function ParseIfStmt : Node;
+  var condition, thenPart, elsePart : Node;
+  begin
     condition := nil; {TODO: }BoolExpression;
-    thenPart := Block;
+    thenPart := ParseBlock;
     elsePart := nil; //  TODO: parse 'ELSE'
     result := NewIfStmt(condition, thenPart, elsePart);
-end;
+  end;
 
 function ParseWriteStmt : Node;
-begin
-  result := NewWriteStmt(ParseExpr);
-end;
+  begin
+    result := NewWriteStmt(ParseExpr);
+  end;
 
-function Block : Node;
-begin
+function ParseBlock : Node;
+  begin
     // TODO: compose a Block to hold the statements.
     Token := GetName;
     while (Token <> 'END') and (Token <> 'ENDIF') do
     begin
       case Token of
-	'IF'	: result := DoIf;
+	'IF'	: result := ParseIfStmt;
 	'WRITE'	: result := ParseWriteStmt;
-	else result := Assignment;
+	else result := ParseAssignStmt;
       end;
       Token := GetName;
     end;
-end;
+  end;
+
+
+// -- main entry point ---
+
+function ParseProgram : Node;
+  begin
+    result := ParseBlock
+  end;
 
 procedure Init;
-begin
+  begin
     Token := '';
     GetChar;
-end;
+  end;
 
-begin
+initialization
   Init;
 end.

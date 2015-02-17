@@ -5,7 +5,7 @@ uses uparse, uast, ueval;
 
 var ast : Node;
 begin
-  ast := Block;
+  ast := ParseProgram;
   eval(ast);
   // TODO: ast.Free;
 end.
