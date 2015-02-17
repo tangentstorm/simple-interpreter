@@ -1,11 +1,12 @@
 {$mode objfpc} // so we can use the $result syntax for return values.
 {Sadece boolean expression parse eden bir program}
 program BoolExp;
-uses uast;
+uses uast, ueval;
 
 const TAB   = ^I;
 const CR    = ^M;
 const LF    = ^J;
+const EOT   = ^D; // ascii end of transmission
 
 var Look: char;
 var Token: String;
@@ -14,10 +15,7 @@ function Expression: integer; Forward;
 
 procedure GetChar;
 begin
-   if Eof then
-     begin
-       WriteLn('(eof)'); Halt(0);
-     end
+   if Eof then Look := EOT
    else read(Look);
 end;
 
@@ -37,7 +35,7 @@ procedure Expected(s: string);
 begin
    Abort(s + ' Expected');
 end;
-
+
 function IsAlpha(c: char): boolean;
 begin
    IsAlpha := upcase(c) in ['A'..'Z'];
@@ -82,7 +80,7 @@ begin
         SkipWhite;
     end;
 end;
-
+
 function GetName: string;
 var TempStr: string;
 begin
@@ -120,7 +118,7 @@ begin
    else Expected('''' + x + '''');
    SkipWhite;
 end;
-
+
 function IsOrop(c: char): boolean;
 begin
    IsOrop := c in ['|', '~'];
@@ -154,7 +152,7 @@ begin
    Match('=');
    Equals := Expression;
 end;
-
+
 function Relation: boolean;
 var TempNumber: integer;
 begin
@@ -186,7 +184,7 @@ begin
         BoolFactor := Relation;
     end;
 end;
-
+
 function NotFactor: boolean;
 begin
     if Look = '!' then
@@ -218,7 +216,7 @@ begin
    Match('~');
    BoolTerm;
 end;
-
+
 function BoolExpression: boolean;
 begin
     BoolExpression := BoolTerm;
@@ -255,7 +253,7 @@ begin
     if IsAlpha(Look) then Token  := GetName;
     if IsDigit(Look) then Factor := GetNum;
 end;
-
+
 function NegFactor: integer;
 begin
    Match('-');
@@ -291,7 +289,7 @@ begin
         end;
     end;
 end;
-
+
 function Add: integer;
 begin
    Match('+');
@@ -315,6 +313,11 @@ begin
       end;
    end;
 end;
+
+function ParseExpr : Node;
+  begin
+    result := NewIntExpr(Expression);
+  end;
 
 function Assignment : Node;
 begin
@@ -329,7 +332,7 @@ function keyword(s:string; out tok:string) : boolean;
     result := tok = s;
   end;
 
-
+
 function Block : Node; forward;
 
 function DoIf : Node;
@@ -341,10 +344,9 @@ begin
     result := NewIfStmt(condition, thenPart, elsePart);
 end;
 
-function DoWrite : Node;
+function ParseWriteStmt : Node;
 begin
-  WriteLn('WRITE COMMAND EXECUTED');
-  result := NewWriteStmt();
+  result := NewWriteStmt(ParseExpr);
 end;
 
 function Block : Node;
@@ -355,7 +357,7 @@ begin
     begin
       case Token of
 	'IF'	: result := DoIf;
-	'WRITE'	: result := DoWrite;
+	'WRITE'	: result := ParseWriteStmt;
 	else result := Assignment;
       end;
       Token := GetName;
@@ -372,6 +374,6 @@ var ast : Node;
 begin
   Init;
   ast := Block;
-  // TODO: eval(ast);
+  eval(ast);
   // TODO: ast.Free;
 end.
