@@ -1,4 +1,4 @@
-{$mode delphi}
+{$mode objfpc}
 unit uAST; // abstract syntax tree for simple interpreter
 interface
 

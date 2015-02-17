@@ -1,4 +1,4 @@
-{$mode delphi}
+{$mode objfpc}
 unit ueval;
 interface uses uast, variants;
 

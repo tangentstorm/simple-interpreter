@@ -1,4 +1,4 @@
-{$mode objfpc} // so we can use the $result syntax for return values.
+{$mode objfpc}
 {Sadece boolean expression parse eden bir program}
 unit uparse;
 interface uses uast;
