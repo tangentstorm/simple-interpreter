@@ -5,63 +5,95 @@ interface uses utools;
   type
     Node      = ^NodeData;
     NodeKind  = ( kINT, kBOOL, kSTR, kVAR,
-		  kWRITE, kIF, kASSIGN, kBLOCK, kVARS, kPROG );
+                  kWRITE, kIF, kASSIGN, kBLOCK, kVARS, kPROG );
     DataKind  = kINT .. kVAR;
     NodeData  = record case kind : NodeKind of
-		  kINT   : ( int : integer );
-		  kVAR   : ( id : string );
-		  kWRITE : ( expr : Node );
-                  kVARS  : ( names : strings );
+                  kINT   : ( int : integer );
+                  kVAR   : ( id : string );
+                  kWRITE : ( expr : Node );
+                  kVARS  : ( ids : strings );
+                  kASSIGN: ( assignId : string; assignVal : Node );
                   kPROG  : ( vars, block : Node );
-		end;
+                end;
 
   function NewIntExpr(int : Integer) : Node;
   function NewVarExpr(id : string) : Node;
 
   function NewIfStmt(condition, thenPart, elsePart : Node) : Node;
   function NewWriteStmt( expr : Node ) : Node;
-  function NewAssignStmt : Node;
+  function NewAssignStmt(id : string; val : Node) : Node;
 
-  function NewVarDecls(names : strings) : Node;
+  function NewVarDecls(ids : strings) : Node;
   function NewProgram(vars, block : Node) : Node;
 
+  procedure DumpNode(n:Node; depth:integer=0); // for debugging
+
+
 implementation
 
   procedure New(var n : Node; kind: NodeKind);
-    begin
-      System.New(n); n^.kind := kind;
+    begin System.New(n); n^.kind := kind;
     end;
 
   function NewIntExpr(int : Integer) : Node;
-    begin
-      New(result, kINT); result^.int := int;
+    begin New(result, kINT); result^.int := int;
     end;
 
   function NewVarExpr(id : string) : Node;
-    begin
-      New(result, kVAR); result^.id := id;
+    begin New(result, kVAR); result^.id := id;
     end;
 
   function NewIfStmt(condition, thenPart, elsePart: Node) : Node;
     begin result := nil end;
 
   function NewWriteStmt( expr : Node ) : Node;
-    begin
-      New(result, kWRITE); result^.expr := expr;
+    begin New(result, kWRITE); result^.expr := expr;
     end;
 
-  function NewAssignStmt : Node;
-    begin result := nil
+  function NewAssignStmt(id : string; val : Node) : Node;
+    begin New(result, kASSIGN); result^.assignId := id; result^.assignVal := val;
     end;
 
-  function NewVarDecls(names : strings) : Node;
-    begin
-      New(result, kVARS); result^.names := names;
+  function NewVarDecls(ids : strings) : Node;
+    begin New(result, kVARS); result^.ids := ids;
     end;
 
   function NewProgram(vars, block : Node) : Node;
+    begin New(result, kPROG); result^.vars := vars; result^.block := block;
+    end;
+
+  procedure DumpNode(n : Node; depth:integer=0);
+    var i: integer;
+    procedure indent; var j: integer;
+      begin if depth>0 then for j:=0 to depth do write(' ')
+      end;
     begin
-      New(result, kPROG); result^.vars := vars; result^.block := block;
+      if n = nil then write('<NIL>')
+      else if not Assigned(n) then write('<BAD>')
+      else case n^.kind of
+        kINT   : write(n^.int);
+        kVAR   : write(n^.id);
+        kWRITE : begin
+                   indent; write('[write '); DumpNode(n^.expr); writeln(']')
+                 end;
+        kASSIGN: begin
+                   indent; write('[', n^.assignId, ' := '); DumpNode(n^.assignVal); writeln(']')
+                 end;
+        kVARS  : begin
+                   indent; write('[vars ');
+                   if length(n^.ids^) > 0 then begin
+                     write(n^.ids^[0]);
+                     if length(n^.ids^)> 1 then for i:=1 to high(n^.ids^) do write(', ', n^.ids^[i]);
+                   end;
+                   writeln(']');
+                 end;
+        kPROG : begin
+                  indent; writeln('[prog ');
+                  DumpNode(n^.vars, depth+1); DumpNode(n^.block, depth+1);
+                  writeln(']');
+                end;
+        otherwise writeln('<UNKNOWN: ', n^.kind ,'>');
+      end;
     end;
 
 end.

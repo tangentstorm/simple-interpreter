@@ -3,9 +3,10 @@
 program simp;
 uses uparse, uast, ueval;
 
-var ast : Node;
+var root : Node;
 begin
-  ast := ParseProgram;
-  eval(ast);
+  root := ParseProgram;
+  if (ParamCount > 0) and (ParamStr(1) = '-d') then DumpNode(root)
+  else eval(root);
   // TODO: ast.Free;
 end.
