@@ -335,9 +335,10 @@ function keyword(s:string; out tok:string) : boolean;
 // -- statements ---
 
 function ParseAssignStmt : Node;
+  var id : string;
   begin
-    Writeln('Assignment');
-    result := NewAssignStmt();
+    id := token; match(':'); match('=');
+    result := NewAssignStmt(id, ParseExpr);
   end;
 
 function ParseIfStmt : Node;

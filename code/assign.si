@@ -1,0 +1,5 @@
+var x;
+begin
+  x := 92
+  write x
+end
