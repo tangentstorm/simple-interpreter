@@ -1,7 +1,7 @@
 {$mode objfpc} // so we can use the $result syntax for return values.
 {Sadece boolean expression parse eden bir program}
 program BoolExp;
-uses uast; // ← generate this with: `lua makenodes.lua > uast.pas`
+uses uast;
 
 const TAB   = ^I;
 const CR    = ^M;
@@ -215,7 +215,7 @@ begin
    BoolTerm;
 end;
 
-function BoolExpression: TBoolExpr;
+function BoolExpression: boolean;
 begin
     BoolExpression := BoolTerm;
     while IsOrOp(Look) do
@@ -312,7 +312,7 @@ begin
    end;
 end;
 
-function Assignment : TSyntax;
+function Assignment : Node;
 begin
     Writeln('Assignment');
     result := NewAssignStmt();
@@ -326,24 +326,24 @@ function keyword(s:string; out tok:string) : boolean;
   end;
 
 
-function Block : TSyntax; forward;
+function Block : Node; forward;
 
-function DoIf : TSyntax;
-var condition, thenPart, elsePart : variant;
+function DoIf : Node;
+var condition, thenPart, elsePart : Node;
 begin
-    condition := BoolExpression;
+    condition := nil; {TODO: }BoolExpression;
     thenPart := Block;
-    elsePart := null; //  TODO: parse 'ELSE'
+    elsePart := nil; //  TODO: parse 'ELSE'
     result := NewIfStmt(condition, thenPart, elsePart);
 end;
 
-function DoWrite : TSyntax;
+function DoWrite : Node;
 begin
   WriteLn('WRITE COMMAND EXECUTED');
   result := NewWriteStmt();
 end;
 
-function Block : TSyntax;
+function Block : Node;
 begin
     // TODO: compose a Block to hold the statements.
     Token := GetName;
@@ -364,10 +364,10 @@ begin
     GetChar;
 end;
 
-var ast : TSyntax;
+var ast : Node;
 begin
   Init;
   ast := Block;
   // TODO: eval(ast);
-  ast.Free;
+  // TODO: ast.Free;
 end.
