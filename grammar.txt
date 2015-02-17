@@ -10,8 +10,10 @@
 
 <if>        ::= IF <bool-expression> <block> [ ELSE <block>] ENDIF
 <while>     ::= WHILE <bool-expression> <block> ENDWHILE
+<write>     ::= WRITE <expression>
+<statement> ::= <if> | <while> | <write> | <assignment>
 <block>     ::= ( <statement> )*
-<statement> ::= <if> | <while> | <assignment>
+
 <declarations>  ::= (<variable list>)*
 <variable list> ::= [<variable>]*
-<program>       ::= <declarations> <block>
+<program>       ::= <declarations> <block>  END
