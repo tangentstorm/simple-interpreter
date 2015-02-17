@@ -1,7 +1,7 @@
 {$mode objfpc}
 {Sadece boolean expression parse eden bir program}
 unit uparse;
-interface uses uast;
+interface uses uast, utools;
 
   function ParseProgram : Node;
   function ParseBlock : Node;
@@ -370,12 +370,31 @@ function ParseBlock : Node;
   end;
 
 
-// -- main entry point ---
+// -- top level parsing rules ---
+
+function ParseVarDecls : Node;
+  var names : strings;
+  begin
+    repeat
+      if Look = ',' then GetChar;
+      SkipWhite; Append(names, GetName); SkipWhite;
+    until Look <> ',';
+    Match(';');
+    result := NewVarDecls(names);
+  end;
 
 function ParseProgram : Node;
+  var decls, block : node;
   begin
-    result := ParseBlock
+    token := GetName;
+    if token = 'VAR' then begin decls := ParseVarDecls; token := GetName end
+    else decls := NewVarDecls(nil);
+    if token = 'BEGIN' then block := ParseBlock else Expected('BEGIN');
+    result := NewProgram(decls, block);
   end;
+
+
+// -- main entry point ---
 
 procedure Init;
   begin

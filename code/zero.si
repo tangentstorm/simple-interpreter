@@ -1,2 +1,3 @@
-write 0
+begin
+  write 0
 end

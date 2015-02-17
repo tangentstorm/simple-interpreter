@@ -14,6 +14,7 @@ function eval(n : Node; e : Env) : variant;
       kWRITE : Writeln(eval(n^.expr));
       kINT   : result := n^.int;
       kVAR   : result := Lookup(e, n^.id);
+      kPROG  : result := eval(n^.block, e);
     end;
   end;
 

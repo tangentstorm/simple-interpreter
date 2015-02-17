@@ -1,16 +1,18 @@
 {$mode objfpc}
 unit uAST; // abstract syntax tree for simple interpreter
-interface
+interface uses utools;
 
   type
     Node      = ^NodeData;
     NodeKind  = ( kINT, kBOOL, kSTR, kVAR,
-		  kWRITE, kIF, kASSIGN, kBLOCK );
+		  kWRITE, kIF, kASSIGN, kBLOCK, kVARS, kPROG );
     DataKind  = kINT .. kVAR;
     NodeData  = record case kind : NodeKind of
 		  kINT   : ( int : integer );
 		  kVAR   : ( id : string );
 		  kWRITE : ( expr : Node );
+                  kVARS  : ( names : strings );
+                  kPROG  : ( vars, block : Node );
 		end;
 
   function NewIntExpr(int : Integer) : Node;
@@ -19,6 +21,9 @@ interface
   function NewIfStmt(condition, thenPart, elsePart : Node) : Node;
   function NewWriteStmt( expr : Node ) : Node;
   function NewAssignStmt : Node;
+
+  function NewVarDecls(names : strings) : Node;
+  function NewProgram(vars, block : Node) : Node;
 
 implementation
 
@@ -46,6 +51,17 @@ implementation
     end;
 
   function NewAssignStmt : Node;
-    begin result := nil end;
+    begin result := nil
+    end;
+
+  function NewVarDecls(names : strings) : Node;
+    begin
+      New(result, kVARS); result^.names := names;
+    end;
+
+  function NewProgram(vars, block : Node) : Node;
+    begin
+      New(result, kPROG); result^.vars := vars; result^.block := block;
+    end;
 
 end.

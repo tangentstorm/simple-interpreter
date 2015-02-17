@@ -1,4 +1,5 @@
-write 1
+begin
+  write 1
 end
 
 
