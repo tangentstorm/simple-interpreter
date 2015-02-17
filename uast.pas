@@ -5,10 +5,18 @@ interface uses utools;
   type
     Node      = ^NodeData;
     NodeKind  = ( kINT, kBOOL, kSTR, kVAR,
+                  kNEG, kNOT,
+                  kADD, kSUB, kMUL, kDIV,
+                  kXOR, kAND, kOR,
+                  kLT, KGT, kEQ, kNE, kLE, KGE,
                   kWRITE, kIF, kASSIGN, kBLOCK, kVARS, kPROG );
+    UnOp      = kNEG .. kNOT; // unary operators (1 argument)
+    BinOp      = kADD .. kGE; // binary operators (2 arguments)
     DataKind  = kINT .. kVAR;
     NodeData  = record case kind : NodeKind of
                   kINT   : ( int : integer );
+                  kNEG, kNOT : ( arg : Node );
+                  kADD..KGE : ( arg0, arg1 : Node );
                   kVAR   : ( id : string );
                   kWRITE : ( expr : Node );
                   kVARS  : ( ids : strings );
@@ -18,6 +26,9 @@ interface uses utools;
 
   function NewIntExpr(int : Integer) : Node;
   function NewVarExpr(id : string) : Node;
+
+  function NewBinOp( x : Node; op: BinOp; y : Node ) : Node;
+  function NewUnOp( op : UnOp; y : Node ) : Node;
 
   function NewIfStmt(condition, thenPart, elsePart : Node) : Node;
   function NewWriteStmt( expr : Node ) : Node;
@@ -43,6 +54,14 @@ implementation
     begin New(result, kVAR); result^.id := id;
     end;
 
+  function NewBinOp( x : Node; op: BinOp; y : Node ) : Node;
+    begin New(result, op); result^.arg0 := x; result^.arg1 := y;
+    end;
+
+  function NewUnOp( op : UnOp; y : Node ) : Node;
+    begin New(result, op); result^.arg := y;
+    end;
+
   function NewIfStmt(condition, thenPart, elsePart: Node) : Node;
     begin result := nil end;
 
@@ -61,7 +80,7 @@ implementation
   function NewProgram(vars, block : Node) : Node;
     begin New(result, kPROG); result^.vars := vars; result^.block := block;
     end;
-
+
   procedure DumpNode(n : Node; depth:integer=0);
     var i: integer;
     procedure indent; var j: integer;
@@ -83,7 +102,8 @@ implementation
                    indent; write('[vars ');
                    if length(n^.ids^) > 0 then begin
                      write(n^.ids^[0]);
-                     if length(n^.ids^)> 1 then for i:=1 to high(n^.ids^) do write(', ', n^.ids^[i]);
+                     if length(n^.ids^)> 1 then
+                       for i:=1 to high(n^.ids^) do write(', ', n^.ids^[i]);
                    end;
                    writeln(']');
                  end;

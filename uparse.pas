@@ -5,6 +5,7 @@ interface uses uast, utools;
 
   function ParseProgram : Node;
   function ParseBlock : Node;
+  function ParseExpr: Node;
 
 implementation
 
@@ -16,7 +17,6 @@ const EOT   = ^D; // ascii end of transmission
 var Look: char;
 var Token: String;
 
-function Expression: integer; Forward;
 
 procedure GetChar;
 begin
@@ -134,51 +134,30 @@ begin
    IsRelop := c in ['=', '#', '<', '>'];
 end;
 
-function Greater: integer;
-begin
-    Match('>');
-    Greater := Expression;
-end;
-
-function Less: integer;
-begin
-    Match('<');
-    Less := Expression;
-end;
-
-function NotEquals: integer;
-begin
-   Match('#');
-   NotEquals := Expression;
-end;
-
-function Equals: integer;
-begin
-   Match('=');
-   Equals := Expression;
-end;
-
-function Relation: boolean;
-var TempNumber: integer;
-begin
-   TempNumber := Expression;
+function ParseRelation: Node;
+  var op : char;
+  begin
+   result := ParseExpr;
    if IsRelop(Look) then
-   begin
-      case Look of
-       '=': Relation := TempNumber  =    Equals;
-       '<': Relation := TempNumber  <    Less;
-       '>': Relation := TempNumber  >    Greater;
-       '#': Relation := TempNumber  <>   NotEquals;
-      end;
-   end;
-end;
+     begin
+       op := Look; GetChar;
+       case op of
+         // TODO : <=, >=, == using Look
+	 '=' : result := NewBinOp(result, kEQ, ParseExpr);
+	 '<' : result := NewBinOp(result, kLT, ParseExpr);
+	 '>' : result := NewBinOp(result, kGT, ParseExpr);
+	 '#' : result := NewBinOp(result, kNE, ParseExpr);
+       end;
+     end
+    // TODO: else Expected('relation')
+  end;
 
-function BoolFactor: boolean;
-begin
+function BoolFactor: Node;
+  begin
     if Look = '(' then
     begin
         Match('(');
-        BoolFactor := Relation;
+        BoolFactor := ParseRelation;
         Match(')');
     end;
     if IsAlNum(Look) then
@@ -186,52 +165,42 @@ begin
         //TempStr := GetName;
         //if UpCase(TempStr) = 'TRUE'     then BoolFactor := true;
         //if UpCase(TempStr) = 'FALSE'    then BoolFactor := false;
-        BoolFactor := Relation;
+        BoolFactor := ParseRelation;
     end;
-end;
+  end;
 
-function NotFactor: boolean;
+function NotFactor: Node;
 begin
     if Look = '!' then
     begin
         Match('!');
-        NotFactor := Not BoolFactor;
-    end else NotFactor := BoolFactor;
+        result := NewUnOp(kNOT, BoolFactor);
+    end else result := BoolFactor;
 
 end;
 
-function BoolTerm: boolean;
-begin
-    BoolTerm := NotFactor;
+function BoolTerm: Node;
+  begin
+    result := NotFactor;
     while Look = '&' do
     begin
         Match('&');
-        BoolTerm := BoolTerm and NotFactor;
+        BoolTerm := NewBinOp(result, kAND, NotFactor);
     end;
-end;
+  end;
 
-function BoolOr: boolean;
-begin
-   Match('|');
-   BoolOr := BoolTerm;
-end;
-
-procedure BoolXor;
-begin
-   Match('~');
-   BoolTerm;
-end;
-
-function BoolExpression: boolean;
-begin
-    BoolExpression := BoolTerm;
+function BoolExpression: Node;
+  var op : char;
+  begin
+    result := BoolTerm;
     while IsOrOp(Look) do
-    begin
-        case Look of
-            '|': BoolExpression := BoolExpression or BoolOr;
-            //'~': BoolXor;
+      op := Look; GetChar;
+      begin
+        case op of
+            '|': result := NewBinOp(result, kOR,  BoolTerm);
+            '~': result := NewBinOp(result, kXOR, BoolTerm);
         end;
-    end;
+      end;
     {
     Boolean expressioný tanýmlayan grameri burda yazalým.
     <b-expression> ::= <b-term> [<orop> <b-term>]*
@@ -244,86 +213,49 @@ begin
     <signed factor>::= [<addop>] <factor>
     <factor>       ::= <integer> | <variable> | (<b-expression>)
     }
-end;
-
-function Factor: integer;
-begin
-    if Look = '(' then
-    begin
-        Match('(');
-        BoolExpression;
-        Match(')');
-    end;
-
-    if IsAlpha(Look) then Token  := GetName;
-    if IsDigit(Look) then Factor := GetNum;
-end;
-
-function NegFactor: integer;
-begin
-   Match('-');
-   if IsDigit(Look) then
-      NegFactor := -GetNum
-   else
-   begin
-      NegFactor := Factor;
-   end;
-end;
-
-function Multiply: integer;
-begin
-   Match('*');
-   Multiply := Factor;
-end;
-
-function Divide: integer;
-begin
-   Match('/');
-   Divide := Factor;
-end;
-
-function Term: integer;
-begin
-    Term := Factor;
-    while IsMulop(Look) do
-    begin
-        case Look of
-            '*': Term := Term * Multiply;
-            '/': Term := Term div Divide; {Bu satýr gidip aþaðýdaki gelecek. Þimdilik bunla idare edelim}
-            //'/': Term := Term / Divide;
-        end;
-    end;
-end;
-
-function Add: integer;
-begin
-   Match('+');
-   Add := Term;
-end;
-
-function Subtract: integer;
-begin
-   Match('-');
-   Subtract := Term;
-end;
-
-function Expression: integer;
-begin
-   Expression := Term;
-   while IsAddop(Look) do
-   begin
-      case Look of
-       '+': Expression := Expression + Add;
-       '-': Expression := Expression - Subtract;
-      end;
-   end;
-end;
-
-// eventually, this will take the place of expression.
-function ParseExpr : Node;
-  begin
-    result := NewIntExpr(Expression);
   end;
+
+function ParseFactor: Node;
+  begin
+    if Look = '(' then
+      begin
+	Match('(');
+	BoolExpression;
+	Match(')');
+      end
+    else if IsAlpha(Look) then result := NewVarExpr(GetName)
+    else if IsDigit(Look) then result := NewIntExpr(GetNum)
+    else if Look = '-' then result := NewUnOp(kNEG, ParseFactor);
+  end;
+
+function ParseTerm: Node;
+  var op : char;
+  begin
+    result := ParseFactor;
+    while IsMulop(Look) do
+      begin
+	op := Look; GetChar;
+	case op of
+	  '*' : result := NewBinOp(result, kMUL, ParseFactor);
+	  '/' : result := NewBinOp(result, kDIV, ParseFactor);
+	end;
+      end;
+  end;
+
+function ParseExpr: Node;
+  var op : char;
+  begin
+    result := ParseTerm;
+    while IsAddop(Look) do
+      begin
+	op := Look; GetChar;
+	case op of
+	  '+' : result := NewBinOp(result, kADD, ParseTerm);
+	  '-' : result := NewBinOp(result, kSUB, ParseTerm);
+	end;
+      end;
+  end;
+
 
 // keyword consumes a word and checks that it matches the expected string s.
 function keyword(s:string; out tok:string) : boolean;
