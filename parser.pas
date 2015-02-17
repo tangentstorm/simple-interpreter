@@ -14,7 +14,11 @@ function Expression: integer; Forward;
 
 procedure GetChar;
 begin
-   Read(Look);
+   if Eof then
+     begin
+       WriteLn('(eof)'); Halt(0);
+     end
+   else read(Look);
 end;
 
 procedure Error(s: string);
