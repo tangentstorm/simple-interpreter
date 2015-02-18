@@ -9,14 +9,16 @@ interface uses utools;
                   kADD, kSUB, kMUL, kDIV,
                   kXOR, kAND, kOR,
                   kLT, KGT, kEQ, kNE, kLE, KGE,
+                  kSEQ, kOK,  // sequences of statements, empty statement
                   kWRITE, kIF, kASSIGN, kBLOCK, kVARS, kPROG );
     UnOp      = kNEG .. kNOT; // unary operators (1 argument)
-    BinOp      = kADD .. kGE; // binary operators (2 arguments)
+    BinOp     = kADD .. kSEQ; // binary operators (2 arguments)
     DataKind  = kINT .. kVAR;
     NodeData  = record case kind : NodeKind of
+                  kOK    : ();
                   kINT   : ( int : integer );
                   kNEG, kNOT : ( arg : Node );
-                  kADD..KGE : ( arg0, arg1 : Node );
+                  kADD..kSEQ : ( arg0, arg1 : Node );
                   kVAR   : ( id : string );
                   kWRITE : ( expr : Node );
                   kVARS  : ( ids : strings );
@@ -33,6 +35,7 @@ interface uses utools;
   function NewIfStmt(condition, thenPart, elsePart : Node) : Node;
   function NewWriteStmt( expr : Node ) : Node;
   function NewAssignStmt(id : string; val : Node) : Node;
+  function NewEmptyStmt : Node;
 
   function NewVarDecls(ids : strings) : Node;
   function NewProgram(vars, block : Node) : Node;
@@ -73,6 +76,10 @@ implementation
     begin New(result, kASSIGN); result^.assignId := id; result^.assignVal := val;
     end;
 
+  function NewEmptyStmt : Node;
+    begin New(result, kOK);
+    end;
+
   function NewVarDecls(ids : strings) : Node;
     begin New(result, kVARS); result^.ids := ids;
     end;
@@ -96,7 +103,8 @@ implementation
                    indent; write('[write '); DumpNode(n^.expr); writeln(']')
                  end;
         kASSIGN: begin
-                   indent; write('[', n^.assignId, ' := '); DumpNode(n^.assignVal); writeln(']')
+                   indent; write('[', n^.assignId, ' := ');
+                   DumpNode(n^.assignVal); writeln(']')
                  end;
         kVARS  : begin
                    indent; write('[vars ');
@@ -107,6 +115,7 @@ implementation
                    end;
                    writeln(']');
                  end;
+        kSEQ : begin DumpNode(n^.arg0); DumpNode(n^.arg1); end;
         kPROG : begin
                   indent; writeln('[prog ');
                   DumpNode(n^.vars, depth+1); DumpNode(n^.block, depth+1);

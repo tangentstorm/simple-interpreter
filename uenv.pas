@@ -4,32 +4,69 @@ unit uenv;
 interface uses uAst, variants, sysutils;
 
 type
-  Binding = record
-    id    : string;
-    kind  : uAst.DataKind;
-    value : variant;
-  end;
   Env = ^EnvData;
   EnvData = record
-    next : Env;
-    defs : array of Binding;
+    next  : Env;
+    id    : string;
+    value : variant;
   end;
 
 const
   EmptyEnv : Env = nil;
 
-function LookUp(e : Env; id: string) : variant;
+function GetVar(e : Env; id: string) : variant;
+function SetVar(e : Env; id: string; val : variant) : Env;
+
+procedure DumpEnv(e : Env); // for debugging.
 
 implementation
 
-function LookUp(e : Env; id: string) : variant;
+function Find(e : Env; id: string; out binding : Env ) : boolean;
   begin
-    result := null;
-    //  TODO: search through environment.
-    if result = null then
+    result := false;
+    while (e <> nil) and (not result) do
+      if id = e^.id then
+        begin
+          result := true; binding := e
+        end
+      else e := e^.next
+  end;
+
+procedure DumpEnv(e : Env);
+  begin
+    while e <> nil do
       begin
-        writeln('Undefined Identifier: ', id); halt(1);
+        writeln(e^.id, ' -> ', e^.value);
+        e := e^.next;
+      end
+  end;
+
+
+function GetVar(e : Env; id: string) : variant;
+  var f : Env;
+  begin
+    if Find(e, id, f) then result := f^.value
+    else
+      begin
+        writeln('Undefined Identifier: ', id); halt(1)
       end;
   end;
 
+function SetVar(e : Env; id: string; val : variant) : Env;
+  var f : Env;
+  begin
+    if Find(e, id, f) then
+      begin
+        f^.value := val; result := e;
+      end
+    else
+      begin
+        new(result);
+        result^.id := id;
+        result^.next := e;
+        result^.value := val;
+      end;
+  end;
+
+initialization
 end.

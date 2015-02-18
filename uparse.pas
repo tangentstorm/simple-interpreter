@@ -287,19 +287,27 @@ function ParseWriteStmt : Node;
     result := NewWriteStmt(ParseExpr);
   end;
 
+function ParseStmt : Node;
+  begin
+    case Token of
+      'IF'	: result := ParseIfStmt;
+      'WRITE'	: result := ParseWriteStmt;
+      else result := ParseAssignStmt;
+    end;
+    Token := GetName;
+  end;
+
 function ParseBlock : Node;
   begin
-    // TODO: compose a Block to hold the statements.
     Token := GetName;
-    while (Token <> 'END') and (Token <> 'ENDIF') do
-    begin
-      case Token of
-	'IF'	: result := ParseIfStmt;
-	'WRITE'	: result := ParseWriteStmt;
-	else result := ParseAssignStmt;
+    if Token = 'END' then
+      result := NewEmptyStmt
+    else
+      begin
+        result := ParseStmt;
+        while (Token <> 'END') and (Token <> 'ENDIF') do
+          result := NewBinOp(result, kSEQ, ParseStmt);
       end;
-      Token := GetName;
-    end;
   end;
 
 
