@@ -15,5 +15,4 @@
 <statement>     ::= <if> | <while> | <write> | <assignment>
 <block>         ::= ( <statement> )*
 
-<declarations>  ::= VAR <variable> ("," <variable>)* ";"
-<program>       ::= [<declarations>] <block>  END
+<program>       ::= BEGIN <block>  END

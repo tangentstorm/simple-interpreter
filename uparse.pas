@@ -313,24 +313,10 @@ function ParseBlock : Node;
 
 // -- top level parsing rules ---
 
-function ParseVarDecls : Node;
-  var names : strings;
-  begin
-    names := New(Strings);
-    repeat
-      if Look = ',' then GetChar;
-      SkipWhite; Append(names, GetName); SkipWhite;
-    until Look <> ',';
-    Match(';');
-    result := NewVarDecls(names);
-  end;
-
 function ParseProgram : Node;
   var decls, block : node;
   begin
     token := GetName;
-    if token = 'VAR' then begin decls := ParseVarDecls; token := GetName end
-    else decls := NewVarDecls(New(strings));
     if token = 'BEGIN' then block := ParseBlock else Expected('BEGIN');
     result := NewProgram(decls, block);
   end;

@@ -10,7 +10,7 @@ interface uses utools;
                   kXOR, kAND, kOR,
                   kLT, KGT, kEQ, kNE, kLE, KGE,
                   kSEQ, kOK,  // sequences of statements, empty statement
-                  kWRITE, kIF, kASSIGN, kBLOCK, kVARS, kPROG );
+                  kWRITE, kIF, kASSIGN, kBLOCK, kPROG );
     UnOp      = kNEG .. kNOT; // unary operators (1 argument)
     BinOp     = kADD .. kSEQ; // binary operators (2 arguments)
     DataKind  = kINT .. kVAR;
@@ -21,7 +21,6 @@ interface uses utools;
                   kADD..kSEQ : ( arg0, arg1 : Node );
                   kVAR   : ( id : string );
                   kWRITE : ( expr : Node );
-                  kVARS  : ( ids : strings );
                   kASSIGN: ( assignId : string; assignVal : Node );
                   kPROG  : ( vars, block : Node );
                 end;
@@ -37,7 +36,6 @@ interface uses utools;
   function NewAssignStmt(id : string; val : Node) : Node;
   function NewEmptyStmt : Node;
 
-  function NewVarDecls(ids : strings) : Node;
   function NewProgram(vars, block : Node) : Node;
 
   procedure DumpNode(n:Node; depth:integer=0); // for debugging
@@ -80,16 +78,11 @@ implementation
     begin New(result, kOK);
     end;
 
-  function NewVarDecls(ids : strings) : Node;
-    begin New(result, kVARS); result^.ids := ids;
-    end;
-
   function NewProgram(vars, block : Node) : Node;
     begin New(result, kPROG); result^.vars := vars; result^.block := block;
     end;
 
   procedure DumpNode(n : Node; depth:integer=0);
-    var i: integer;
     procedure indent; var j: integer;
       begin if depth>0 then for j:=0 to depth do write(' ')
       end;
@@ -105,15 +98,6 @@ implementation
         kASSIGN: begin
                    indent; write('[', n^.assignId, ' := ');
                    DumpNode(n^.assignVal); writeln(']')
-                 end;
-        kVARS  : begin
-                   indent; write('[vars ');
-                   if length(n^.ids^) > 0 then begin
-                     write(n^.ids^[0]);
-                     if length(n^.ids^)> 1 then
-                       for i:=1 to high(n^.ids^) do write(', ', n^.ids^[i]);
-                   end;
-                   writeln(']');
                  end;
         kSEQ : begin DumpNode(n^.arg0); DumpNode(n^.arg1); end;
         kPROG : begin
