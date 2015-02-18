@@ -269,7 +269,7 @@ function keyword(s:string; out tok:string) : boolean;
 function ParseAssignStmt : Node;
   var id : string;
   begin
-    id := token; match(':'); match('=');
+    id := token; match('=');
     result := NewAssignStmt(id, ParseExpr);
   end;
 

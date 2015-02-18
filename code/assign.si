@@ -1,4 +1,4 @@
 begin
-  x := 92
+  x = 92
   write x
 end

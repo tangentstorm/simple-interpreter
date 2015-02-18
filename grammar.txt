@@ -11,7 +11,7 @@
 <if>            ::= IF <bool-expression> <block> [ ELSE <block>] ENDIF
 <while>         ::= WHILE <bool-expression> <block> ENDWHILE
 <write>         ::= WRITE <expression>
-<assignment>    ::= <variable> ":=" <expression>
+<assignment>    ::= <variable> "=" <expression>
 <statement>     ::= <if> | <while> | <write> | <assignment>
 <block>         ::= ( <statement> )*
 
