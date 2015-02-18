@@ -217,6 +217,7 @@ function BoolExpression: Node;
 
 function ParseFactor: Node;
   begin
+    SkipWhite;
     if Look = '(' then
       begin
 	Match('(');

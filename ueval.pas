@@ -13,6 +13,7 @@ function eval(n : Node; var e : Env) : variant;
     case n^.kind of
       kWRITE : Writeln(eval(n^.expr, e));
       kINT   : result := n^.int;
+      kADD   : result := eval(n^.arg0, e) + eval(n^.arg1, e);
       kVAR   : result := GetVar(e, n^.id);
       kPROG  : result := eval(n^.block, e);
       kSEQ   : begin
