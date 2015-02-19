@@ -9,11 +9,13 @@ interface uses utools;
                   kXOR, kAND, kOR,
                   kLT, KGT, kEQ, kNE, kLE, KGE,
                   kSEQ, // sequences of statements
-                  kWRITE, kIF, kWHILE, kASSIGN, kBLOCK, kPROG );
+                  kOK, kWRITE, kIF, kWHILE, kASSIGN, kBLOCK, kPROG );
     UnOp      = kNEG .. kNOT; // unary operators (1 argument)
     BinOp     = kADD .. kSEQ; // binary operators (2 arguments)
     DataKind  = kINT .. kVAR;
-    NodeData  = record case kind : NodeKind of
+    NodeData  = record
+		  nid : cardinal;
+		case kind: NodeKind of
                   kINT   : ( int : integer );
                   kNEG, kNOT : ( arg : Node );
                   kADD..kSEQ : ( arg0, arg1 : Node );
@@ -24,7 +26,7 @@ interface uses utools;
                   kASSIGN: ( assignId : string; assignVal : Node );
                   kPROG  : ( block : Node );
                 end;
-  const EmptyStmt = nil;
+
   function NewIntExpr(int : Integer) : Node;
   function NewVarExpr(id : string) : Node;
 
@@ -36,16 +38,20 @@ interface uses utools;
   function NewWhileStmt(cond, body : Node) : Node;
   function NewAssignStmt(id : string; val : Node) : Node;
   function NewProgram(block : Node) : Node;
+  function NewEmptyStmt : Node;
 
   procedure DumpNode(n:Node; depth:integer=0); // for debugging
 
 
 implementation
 
+  var nodecount : cardinal = 0;
+
   procedure New(var n : Node; kind: NodeKind);
-    begin System.New(n); n^.kind := kind;
+    begin System.New(n); n^.kind := kind; n^.nid := nodecount; inc(nodecount)
     end;
 
+
   function NewIntExpr(int : Integer) : Node;
     begin New(result, kINT); result^.int := int;
     end;
@@ -65,6 +71,10 @@ implementation
   function NewIfStmt(condition, thenPart, elsePart: Node) : Node;
     begin New(result, kIF); result^.condition := condition;
           result^.thenPart := thenPart; result^.elsePart := elsePart;
+    end;
+
+  function NewEmptyStmt : Node;
+    begin New(result, kOK);
     end;
 
   function NewWriteStmt( expr : Node ) : Node;
@@ -93,7 +103,7 @@ implementation
       begin if depth>0 then for j:=0 to depth do write(' ')
       end;
     begin
-      if n = EmptyStmt then write('OK')
+      if n = nil then write('<NIL>')
       else if not Assigned(n) then write('<BAD>')
       else if (n^.kind) in [kADD..kGE] then
 	begin
@@ -102,6 +112,7 @@ implementation
 	  DumpNode(n^.arg1); write(')');
 	end
       else case n^.kind of
+        kOK : write('OK');
         kINT : write(n^.int);
         kVAR : write(n^.id);
         kNEG : begin write('-'); DumpNode(n^.arg); end;

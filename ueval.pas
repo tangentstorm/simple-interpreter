@@ -10,7 +10,7 @@ function eval(n : Node; var e : Env) : variant;
   begin
     // WriteLn('evaluating node: ', n^.kind); DumpNode(n);
     result := null;
-    if n <> EmptyStmt then case n^.kind of
+    if n^.kind <> kOK then case n^.kind of
       kWRITE : Writeln(eval(n^.expr, e));
       kINT   : result := n^.int;
       // arithmetic operators

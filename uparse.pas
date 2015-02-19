@@ -320,7 +320,7 @@ function IfStmt : Node;
     keyword('THEN');
     thenPart := Block(['ELSE', 'ENDIF']);
     if token = 'ELSE' then elsePart := Block(['ENDIF'])
-    else elsePart := EmptyStmt;
+    else elsePart := NewEmptyStmt;
     if token = 'ENDIF' then {ok} else expected('ENDIF');
     result := NewIfStmt(condition, thenPart, elsePart);
   end;
@@ -366,7 +366,7 @@ function Block(EndTokens : array Of string) : Node;
   begin
     trace('Block');
     GetName;
-    if AtEndToken then result := EmptyStmt
+    if AtEndToken then result := NewEmptyStmt
     else
       begin
         result := Stmt;
