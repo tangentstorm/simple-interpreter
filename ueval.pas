@@ -13,6 +13,7 @@ function eval(n : Node; var e : Env) : variant;
     if n <> EmptyStmt then case n^.kind of
       kWRITE : Writeln(eval(n^.expr, e));
       kINT   : result := n^.int;
+      kNEG   : result := -eval(n^.arg, e);
       kADD   : result := eval(n^.arg0, e) + eval(n^.arg1, e);
       kLT    : result := Ord(eval(n^.arg0, e) < eval(n^.arg1, e));
       kVAR   : result := GetVar(e, n^.id);

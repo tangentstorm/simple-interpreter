@@ -230,18 +230,23 @@ function ParseFactor: Node;
     if Look = '(' then
       begin
 	Match('(');
-	ParseBoolExpr;
+	result := ParseExpr;
 	Match(')');
       end
     else if IsAlpha(Look) then result := NewVarExpr(GetName)
     else if IsDigit(Look) then result := NewIntExpr(GetNum)
-    else if Look = '-' then result := NewUnOp(kNEG, ParseFactor);
+    else if Look = '-' then
+      begin
+	match('-');
+	result := NewUnOp(kNEG, ParseExpr);
+      end;
     Trace('-Factor');
   end;
 
 function ParseTerm: Node;
   var op : char;
   begin
+    Trace('+Term');
     result := ParseFactor;
     while IsMulop(Look) do
       begin
@@ -251,11 +256,13 @@ function ParseTerm: Node;
 	  '/' : result := NewBinOp(result, kDIV, ParseFactor);
 	end;
       end;
+    Trace('-Term');
   end;
 
 function ParseExpr: Node;
   var op : char;
   begin
+    Trace('+Expr');
     result := ParseTerm;  SkipWhite;
     while IsAddop(Look) do
       begin
@@ -265,6 +272,7 @@ function ParseExpr: Node;
 	  '-' : result := NewBinOp(result, kSUB, ParseTerm);
 	end;
       end;
+    Trace('-Expr');
   end;
 
 

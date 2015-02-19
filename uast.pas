@@ -104,6 +104,7 @@ implementation
       else case n^.kind of
         kINT : write(n^.int);
         kVAR : write(n^.id);
+        kNEG : begin write('-'); DumpNode(n^.arg); end;
         kWRITE : begin
                    indent; write('[write '); DumpNode(n^.expr); writeln(']')
                  end;
