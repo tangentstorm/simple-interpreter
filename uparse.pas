@@ -67,7 +67,7 @@ end;
 
 function IsMulop(c: char): boolean;
 begin
-   IsMulop := c in ['*', '/'];
+   IsMulop := c in ['*', '/', '%'];
 end;
 
 function IsWhite(c: char): boolean;
@@ -209,9 +209,7 @@ function ParseBoolExpr: Node;
   begin
     Trace('+BoolExpr');
     result := BoolTerm;
-    Trace('isorp('+Look+')?');
     while IsOrOp(Look) do
-      trace('YES!');
       op := Look; //GetChar;
       begin
         case op of
@@ -254,11 +252,13 @@ function ParseTerm: Node;
 	case op of
 	  '*' : result := NewBinOp(result, kMUL, ParseFactor);
 	  '/' : result := NewBinOp(result, kDIV, ParseFactor);
+	  '%' : result := NewBinOp(result, kMOD, ParseFactor);
 	end;
       end;
     Trace('-Term');
   end;
 
+
 function ParseExpr: Node;
   var op : char;
   begin

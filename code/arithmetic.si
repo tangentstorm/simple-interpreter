@@ -1,0 +1,7 @@
+begin
+  write 2+3  write 3+5  write 5+-1  write 0+-1
+  write 2-3  write 3-5  write 5--1  write 0--1
+  write 2*3  write 3*5  write 5*-1  write 0*-1
+  write 2/3  write 3/5  write 5/-1  write 0/-1
+  write 2%3  write 3%5  write 5%-1  write 0%-1
+end

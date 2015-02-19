@@ -5,7 +5,7 @@ interface uses utools;
     Node      = ^NodeData;
     NodeKind  = ( kINT, kBOOL, kSTR, kVAR,
                   kNEG, kNOT,
-                  kADD, kSUB, kMUL, kDIV,
+                  kADD, kSUB, kMUL, kDIV, kMOD,
                   kXOR, kAND, kOR,
                   kLT, KGT, kEQ, kNE, kLE, KGE,
                   kSEQ, // sequences of statements
@@ -86,7 +86,7 @@ implementation
     end;
 
   const kBinChars : array[BinOp] of string =
-    ('+','-','*','/','~','&','|','<','>',' = ','#','≤','≥',';');
+    ('+','-','*','/','%','~','&','|','<','>',' = ','#','≤','≥',';');
 
   procedure DumpNode(n : Node; depth:integer=0);
     procedure indent; var j: integer;
