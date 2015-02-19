@@ -1,4 +1,6 @@
 begin
   if 10<20 then write 10 else write 20 endif
   if 10>20 then write 10 else write 20 endif
+  if 0 then write 0 endif
+  if 1 then write 1 endif
 end
