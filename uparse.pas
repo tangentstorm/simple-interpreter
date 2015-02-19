@@ -3,9 +3,9 @@
 unit uparse;
 interface uses uast, utools, sysutils;
 
-  function ParseProgram : Node;
-  function ParseBlock(EndTokens : array of string) : Node;
-  function ParseExpr: Node;
+  function Prog : Node;
+  function Block(EndTokens : array of string) : Node;
+  function Expr: Node;
   var doTrace : boolean = false; // for debugging. enable with -t
 
 implementation
@@ -46,34 +46,34 @@ procedure Expected(s: string);
   end;
 
 function IsAlpha(c: char): boolean;
-begin
-   IsAlpha := upcase(c) in ['A'..'Z'];
-end;
+  begin
+    IsAlpha := upcase(c) in ['A'..'Z'];
+  end;
 
 function IsDigit(c: char): boolean;
-begin
-   IsDigit := c in ['0'..'9'];
-end;
+  begin
+    IsDigit := c in ['0'..'9'];
+  end;
 
 function IsAlNum(c: char): boolean;
-begin
-   IsAlNum := IsAlpha(c) or IsDigit(c);
-end;
+  begin
+    IsAlNum := IsAlpha(c) or IsDigit(c);
+  end;
 
 function IsAddop(c: char): boolean;
-begin
-   IsAddop := c in ['+', '-'];
-end;
+  begin
+    IsAddop := c in ['+', '-'];
+  end;
 
 function IsMulop(c: char): boolean;
-begin
-   IsMulop := c in ['*', '/', '%'];
-end;
+  begin
+    IsMulop := c in ['*', '/', '%'];
+  end;
 
 function IsWhite(c: char): boolean;
-begin
-   IsWhite := c in [' ', TAB,CR,LF];
-end;
+  begin
+    IsWhite := c in [' ', TAB,CR,LF];
+  end;
 
 procedure SkipWhite;
   begin
@@ -148,19 +148,19 @@ function IsRelop(c: char): boolean;
    IsRelop := c in ['=', '#', '<', '>'];
   end;
 
-function ParseRelation: Node;
+function Relation: Node;
   var op : char;
   begin
-    result := ParseExpr;
+    result := Expr;
     if IsRelop(Look) then
       begin
 	op := Look; GetChar;
 	case op of
 	  // TODO : <=, >=, == using Look
-	  '=' : result := NewBinOp(result, kEQ, ParseExpr);
-	  '<' : result := NewBinOp(result, kLT, ParseExpr);
-	  '>' : result := NewBinOp(result, kGT, ParseExpr);
-	  '#' : result := NewBinOp(result, kNE, ParseExpr);
+	  '=' : result := NewBinOp(result, kEQ, Expr);
+	  '<' : result := NewBinOp(result, kLT, Expr);
+	  '>' : result := NewBinOp(result, kGT, Expr);
+	  '#' : result := NewBinOp(result, kNE, Expr);
 	end;
       end;
     // TODO: else Expected('relation')
@@ -171,14 +171,14 @@ function BoolFactor: Node;
     SkipWhite;
     if Look = '(' then
       begin
-        Match('('); result := ParseRelation; Match(')');
+        Match('('); result := Relation; Match(')');
       end
     else if IsAlNum(Look) then
       begin {TODO: Bu kýsmý fix et}
         //TempStr := GetName;
         //if UpCase(TempStr) = 'TRUE'     then BoolFactor := true;
         //if UpCase(TempStr) = 'FALSE'    then BoolFactor := false;
-	result := ParseRelation;
+	result := Relation;
       end;
   end;
 
@@ -204,7 +204,7 @@ function BoolTerm: Node;
     Trace('-BoolTerm');
   end;
 
-function ParseBoolExpr: Node;
+function BoolExpr: Node;
   var op : char;
   begin
     Trace('+BoolExpr');
@@ -221,14 +221,14 @@ function ParseBoolExpr: Node;
   end;
 
 
-function ParseFactor: Node;
+function Factor: Node;
   begin
     Trace('+Factor');
     SkipWhite;
     if Look = '(' then
       begin
 	Match('(');
-	result := ParseExpr;
+	result := Expr;
 	Match(')');
       end
     else if IsAlpha(Look) then result := NewVarExpr(GetName)
@@ -236,40 +236,40 @@ function ParseFactor: Node;
     else if Look = '-' then
       begin
 	match('-');
-	result := NewUnOp(kNEG, ParseExpr);
+	result := NewUnOp(kNEG, Expr);
       end;
     Trace('-Factor');
   end;
 
-function ParseTerm: Node;
+function Term: Node;
   var op : char;
   begin
     Trace('+Term');
-    result := ParseFactor;
+    result := Factor;
     while IsMulop(Look) do
       begin
 	op := Look; GetChar;
 	case op of
-	  '*' : result := NewBinOp(result, kMUL, ParseFactor);
-	  '/' : result := NewBinOp(result, kDIV, ParseFactor);
-	  '%' : result := NewBinOp(result, kMOD, ParseFactor);
+	  '*' : result := NewBinOp(result, kMUL, Factor);
+	  '/' : result := NewBinOp(result, kDIV, Factor);
+	  '%' : result := NewBinOp(result, kMOD, Factor);
 	end;
       end;
     Trace('-Term');
   end;
 
 
-function ParseExpr: Node;
+function Expr: Node;
   var op : char;
   begin
     Trace('+Expr');
-    result := ParseTerm;  SkipWhite;
+    result := Term;  SkipWhite;
     while IsAddop(Look) do
       begin
 	op := Look; GetChar;
 	case op of
-	  '+' : result := NewBinOp(result, kADD, ParseTerm);
-	  '-' : result := NewBinOp(result, kSUB, ParseTerm);
+	  '+' : result := NewBinOp(result, kADD, Term);
+	  '-' : result := NewBinOp(result, kSUB, Term);
 	end;
       end;
     Trace('-Expr');
@@ -278,47 +278,47 @@ function ParseExpr: Node;
 
 // -- statements ---
 
-function ParseAssignStmt : Node;
+function AssignStmt : Node;
   var id : string;
   begin
     id := token; match('=');
-    result := NewAssignStmt(id, ParseExpr);
+    result := NewAssignStmt(id, Expr);
   end;
 
-function ParseIfStmt : Node;
+function IfStmt : Node;
   var condition, thenPart, elsePart : Node;
   begin
-    condition := ParseBoolExpr;
+    condition := BoolExpr;
     keyword('THEN');
-    thenPart := ParseBlock(['ELSE', 'ENDIF']);
-    if token = 'ELSE' then elsePart := ParseBlock(['ENDIF'])
+    thenPart := Block(['ELSE', 'ENDIF']);
+    if token = 'ELSE' then elsePart := Block(['ENDIF'])
     else elsePart := EmptyStmt;
     if token = 'ENDIF' then {ok} else expected('ENDIF');
     result := NewIfStmt(condition, thenPart, elsePart);
   end;
 
-function ParseWhileStmt : Node;
+function WhileStmt : Node;
   var cond, body : Node;
   begin
-    trace('ParseWhileStmt.cond');
-    cond := ParseBoolExpr;
-    trace('ParseWhileStmt.body');
+    trace('WhileStmt.cond');
+    cond := BoolExpr;
+    trace('WhileStmt.body');
     keyword('DO');
-    body := ParseBlock(['ENDWHILE']);
+    body := Block(['ENDWHILE']);
     result := NewWhileStmt(cond,body);
   end;
 
-function ParseWriteStmt : Node;
-  begin result := NewWriteStmt(ParseExpr);
+function WriteStmt : Node;
+  begin result := NewWriteStmt(Expr);
   end;
 
-function ParseStmt : Node;
-  begin trace('ParseStmt:' + Token);
+function Stmt : Node;
+  begin trace('Stmt:' + Token);
     case Token of
-      'IF'    : result := ParseIfStmt;
-      'WHILE' : result := ParseWhileStmt;
-      'WRITE' : result := ParseWriteStmt;
-      else result := ParseAssignStmt;
+      'IF'    : result := IfStmt;
+      'WHILE' : result := WhileStmt;
+      'WRITE' : result := WriteStmt;
+      else result := AssignStmt;
     end;
     GetName;
   end;
@@ -327,7 +327,7 @@ function ParseStmt : Node;
 
 // -- top level parsing rules ---
 
-function ParseBlock(EndTokens : array Of string) : Node;
+function Block(EndTokens : array Of string) : Node;
   function AtEndToken:boolean;
     var i:integer;
     begin
@@ -336,22 +336,22 @@ function ParseBlock(EndTokens : array Of string) : Node;
 	result := result or (token = EndTokens[i]);
     end;
   begin
-    trace('ParseBlock');
+    trace('Block');
     GetName;
     if AtEndToken then result := EmptyStmt
     else
       begin
-        result := ParseStmt;
-        while not AtEndToken do result := NewBinOp(result, kSEQ, ParseStmt);
+        result := Stmt;
+        while not AtEndToken do result := NewBinOp(result, kSEQ, Stmt);
       end;
   end;
 
-function ParseProgram : Node;
-  var block : node;
+function Prog : Node;
+  var aBlock : node;
   begin
-    if GetName = 'BEGIN' then block := ParseBlock(['END'])
+    if GetName = 'BEGIN' then aBlock := Block(['END'])
     else Expected('BEGIN');
-    result := NewProgram(block);
+    result := NewProgram(aBlock);
   end;
 
 

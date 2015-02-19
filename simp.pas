@@ -11,7 +11,7 @@ begin
       '-t' : uparse.doTrace := true;
       else {ok}
     end;
-  root := ParseProgram;
+  root := uparse.Prog;
   if dump then DumpNode(root) else eval(root, EmptyEnv);
   // TODO: free memory for ast, environement
 end.
