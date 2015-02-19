@@ -4,7 +4,7 @@ unit uparse;
 interface uses uast, utools, sysutils;
 
   function ParseProgram : Node;
-  function ParseBlock : Node;
+  function ParseBlock(EndTokens : array of string) : Node;
   function ParseExpr: Node;
   var doTrace : boolean = false; // for debugging. enable with -t
 
@@ -24,27 +24,26 @@ procedure trace(s : string); inline;
 
 procedure GetChar;
   begin
-    if Eof then Look := EOT
-    else read(Look);
+    if Eof then Look := EOT else read(Look);
     Trace('"' + Look + '"');
   end;
 
 procedure Error(s: string);
-begin
+  begin
    WriteLn;
    WriteLn(^G, 'Error: ', s, '.');
-end;
+  end;
 
 procedure Abort(s: string);
-begin
+  begin
    Error(s);
    Halt;
-end;
+  end;
 
 procedure Expected(s: string);
-begin
+  begin
    Abort(s + ' Expected');
-end;
+  end;
 
 function IsAlpha(c: char): boolean;
 begin
@@ -282,8 +281,10 @@ function ParseIfStmt : Node;
   var condition, thenPart, elsePart : Node;
   begin
     condition := ParseBoolExpr;
-    thenPart := ParseBlock;
-    elsePart := nil; //  TODO: parse 'ELSE'
+    keyword('THEN');
+    thenPart := ParseBlock(['ELSE', 'ENDIF']);
+    if token = 'ELSE' then elsePart := ParseBlock(['ENDIF']) else {ok};
+    if token = 'ENDIF' then {ok} else expected('ENDIF');
     result := NewIfStmt(condition, thenPart, elsePart);
   end;
 
@@ -294,7 +295,7 @@ function ParseWhileStmt : Node;
     cond := ParseBoolExpr;
     trace('ParseWhileStmt.body');
     keyword('DO');
-    body := ParseBlock;
+    body := ParseBlock(['ENDWHILE']);
     result := NewWhileStmt(cond,body);
   end;
 
@@ -317,9 +318,13 @@ function ParseStmt : Node;
 
 // -- top level parsing rules ---
 
-function ParseBlock : Node;
+function ParseBlock(EndTokens : array Of string) : Node;
   function AtEndToken:boolean;
-    begin result := (token = 'END') or (token='ENDIF') or (token='ENDWHILE')
+    var i:integer;
+    begin
+      result := false;
+      for i := low(EndTokens) to High(EndTokens) do
+	result := result or (token = EndTokens[i]);
     end;
   begin
     trace('ParseBlock');
@@ -335,7 +340,8 @@ function ParseBlock : Node;
 function ParseProgram : Node;
   var decls, block : node;
   begin
-    if GetName = 'BEGIN' then block := ParseBlock else Expected('BEGIN');
+    if GetName = 'BEGIN' then block := ParseBlock(['END'])
+    else Expected('BEGIN');
     result := NewProgram(decls, block);
   end;
 
