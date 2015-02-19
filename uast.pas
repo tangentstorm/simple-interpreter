@@ -3,6 +3,7 @@ unit uAST; // abstract syntax tree for simple interpreter
 interface uses utools;
   type
     Node      = ^NodeData;
+    NodeList  = array of Node;
     NodeKind  = ( kINT, kBOOL, kSTR, kVAR,
                   kNEG, kNOT,
                   kADD, kSUB, kMUL, kDIV, kMOD,
@@ -26,13 +27,13 @@ interface uses utools;
                   kASSIGN: ( assignId : string; assignVal : Node );
                   kPROG  : ( block : Node );
                 end;
+  const kBinChars : array[BinOp] of string =
+          ('+','-','*','/','%','~','&','|','<','>',' = ','#','≤','≥',';');
 
   function NewIntExpr(int : Integer) : Node;
   function NewVarExpr(id : string) : Node;
-
   function NewBinOp(x : Node; op: BinOp; y : Node) : Node;
   function NewUnOp(op : UnOp; y : Node) : Node;
-
   function NewIfStmt(condition, thenPart, elsePart : Node) : Node;
   function NewWriteStmt(expr : Node) : Node;
   function NewWhileStmt(cond, body : Node) : Node;
@@ -40,7 +41,10 @@ interface uses utools;
   function NewProgram(block : Node) : Node;
   function NewEmptyStmt : Node;
 
+  function Nodes(ns: array of node): NodeList;
+  function Children(n:Node): NodeList; // mostly for uviz
   procedure DumpNode(n:Node; depth:integer=0); // for debugging
+
 
 
 implementation
@@ -95,9 +99,30 @@ implementation
     begin New(result, kPROG); result^.block := block;
     end;
 
-  const kBinChars : array[BinOp] of string =
-    ('+','-','*','/','%','~','&','|','<','>',' = ','#','≤','≥',';');
+  function Nodes(ns: array of node): NodeList;
+    var i: integer;
+    begin
+      SetLength(result, length(ns));
+      if length(ns) > 0 then
+        for i := 0 to High(ns) do result[i] := ns[i];
+    end;
 
+  function Children(n:Node): NodeList;
+    begin
+      if (n^.kind) in [Low(BinOp)..High(BinOp)] then
+        result := Nodes([n^.arg0, n^.arg1])
+      else case n^.kind of
+        kNEG : result := Nodes([n^.arg]);
+        kWRITE : result := Nodes([n^.expr]);
+        kASSIGN: result := Nodes([n^.assignVal]);
+	kWHILE : result := Nodes([n^.whileCond, n^.whileBody]);
+	kIF : result := Nodes([n^.condition, n^.thenPart, n^.elsePart]);
+        kPROG : result := Nodes([n^.block]);
+        otherwise result := Nodes([]);
+      end;
+    end;
+
+
   procedure DumpNode(n : Node; depth:integer=0);
     procedure indent; var j: integer;
       begin if depth>0 then for j:=0 to depth do write(' ')
