@@ -1,0 +1,9 @@
+Begin
+  A = 100
+  B = 200
+  SUM = A + B
+  While SUM < 303 Do
+    SUM = SUM + 1
+    Write SUM
+  EndWhile
+End

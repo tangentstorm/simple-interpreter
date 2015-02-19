@@ -1,7 +1,7 @@
 {$mode objfpc}
 {Sadece boolean expression parse eden bir program}
 unit uparse;
-interface uses uast, utools;
+interface uses uast, utools, sysutils;
 
   function ParseProgram : Node;
   function ParseBlock : Node;
@@ -17,12 +17,16 @@ const EOT   = ^D; // ascii end of transmission
 var Look: char;
 var Token: String;
 
+procedure trace(s : string); inline;
+  begin //WriteLn(s);
+  end;
 
 procedure GetChar;
-begin
-   if Eof then Look := EOT
-   else read(Look);
-end;
+  begin
+    if Eof then Look := EOT
+    else read(Look);
+    Trace('"' + Look + '"');
+  end;
 
 procedure Error(s: string);
 begin
@@ -68,61 +72,71 @@ end;
 
 function IsWhite(c: char): boolean;
 begin
-   IsWhite := c in [' ', TAB];
+   IsWhite := c in [' ', TAB,CR,LF];
 end;
 
 procedure SkipWhite;
-begin
-   while IsWhite(Look) do
-      GetChar;
-end;
+  begin
+    while IsWhite(Look) do GetChar
+  end;
 
-procedure NewLine;
-begin
-    while Look in [CR, LF] do
-    begin
-        GetChar;
-        SkipWhite;
-    end;
-end;
 
 function GetName: string;
-var TempStr: string;
-begin
-    TempStr := '';
-    NewLine;
-    if not IsAlpha(Look) then Expected('Name');
-
-    while IsAlNum(Look) do
-    begin
-        TempStr := TempStr + UpCase(Look);
-        GetChar;
-    end;
-    GetName := TempStr;
+  begin
     SkipWhite;
-end;
+    Token := '';
+    if not IsAlpha(Look) then
+      begin
+	Write('Saw "', Look ,'",but'); Expected('Name');
+      end;
+    while IsAlNum(Look) do
+      begin
+        Token := Token + UpCase(Look);
+        GetChar;
+      end;
+    result := Token;
+    SkipWhite;
+    Trace('Token='+Token);
+  end;
 
 
 function GetNum: integer;
-var Val: integer;
-begin
+  var Val: integer;
+  begin
+    Trace('+GetNum');
     Val := 0;
     if not IsDigit(Look) then Expected('Integer');
     while IsDigit(Look) do
-    begin
+      begin
         Val := 10 * Val + Ord(Look) - Ord('0');
         GetChar;
-    end;
-    GetNum := Val;
-    SkipWhite;
-end;
+      end;
+    result := Val;
+    Trace('-GetNum->' + IntToStr(result));
+  end;
 
+
 procedure Match(x: char);
-begin
-   if Look = x then GetChar
-   else Expected('''' + x + '''');
-   SkipWhite;
-end;
+  begin
+    if Look = x then GetChar
+    else Expected('''' + x + '''');
+    SkipWhite;
+  end;
+
+procedure Keyword(s : string);
+  var i : integer;
+  begin
+    Trace('Keyword('+s+')');
+    SkipWhite; Token := '';
+    if length(s) > 0 then for i := 1 to length(s) do
+      begin
+	Token += UpCase(Look);
+	if UpCase(s[i]) <> UpCase(Look) then
+	  Abort('Expected "'+ s +'" but saw: "'+ Token +'"');
+	GetChar;
+      end;
+  end;
+
 
 function IsOrop(c: char): boolean;
 begin
@@ -130,103 +144,99 @@ begin
 end;
 
 function IsRelop(c: char): boolean;
-begin
+  begin
    IsRelop := c in ['=', '#', '<', '>'];
-end;
+  end;
 
 function ParseRelation: Node;
   var op : char;
   begin
-   result := ParseExpr;
-   if IsRelop(Look) then
-     begin
-       op := Look; GetChar;
-       case op of
-         // TODO : <=, >=, == using Look
-	 '=' : result := NewBinOp(result, kEQ, ParseExpr);
-	 '<' : result := NewBinOp(result, kLT, ParseExpr);
-	 '>' : result := NewBinOp(result, kGT, ParseExpr);
-	 '#' : result := NewBinOp(result, kNE, ParseExpr);
-       end;
-     end
+    result := ParseExpr;
+    if IsRelop(Look) then
+      begin
+	op := Look; GetChar;
+	case op of
+	  // TODO : <=, >=, == using Look
+	  '=' : result := NewBinOp(result, kEQ, ParseExpr);
+	  '<' : result := NewBinOp(result, kLT, ParseExpr);
+	  '>' : result := NewBinOp(result, kGT, ParseExpr);
+	  '#' : result := NewBinOp(result, kNE, ParseExpr);
+	end;
+      end;
     // TODO: else Expected('relation')
   end;
 
 function BoolFactor: Node;
   begin
+    SkipWhite;
     if Look = '(' then
-    begin
-        Match('(');
-        BoolFactor := ParseRelation;
-        Match(')');
-    end;
-    if IsAlNum(Look) then
-    begin {TODO: Bu kýsmý fix et}
+      begin
+        Match('('); result := ParseRelation; Match(')');
+      end
+    else if IsAlNum(Look) then
+      begin {TODO: Bu kýsmý fix et}
         //TempStr := GetName;
         //if UpCase(TempStr) = 'TRUE'     then BoolFactor := true;
         //if UpCase(TempStr) = 'FALSE'    then BoolFactor := false;
-        BoolFactor := ParseRelation;
-    end;
+	result := ParseRelation;
+      end;
   end;
 
 function NotFactor: Node;
-begin
+  begin
     if Look = '!' then
-    begin
+      begin
         Match('!');
-        result := NewUnOp(kNOT, BoolFactor);
-    end else result := BoolFactor;
-
-end;
+        result := NewUnOp(kNOT, BoolFactor)
+      end
+    else result := BoolFactor
+  end;
 
 function BoolTerm: Node;
   begin
+    Trace('+BoolTerm');
     result := NotFactor;
     while Look = '&' do
-    begin
+      begin
         Match('&');
         BoolTerm := NewBinOp(result, kAND, NotFactor);
-    end;
+      end;
+    Trace('-BoolTerm');
   end;
 
-function BoolExpression: Node;
+function ParseBoolExpr: Node;
   var op : char;
   begin
+    Trace('+BoolExpr');
     result := BoolTerm;
+    Trace('isorp('+Look+')?');
     while IsOrOp(Look) do
-      op := Look; GetChar;
+      trace('YES!');
+      op := Look; //GetChar;
       begin
         case op of
             '|': result := NewBinOp(result, kOR,  BoolTerm);
             '~': result := NewBinOp(result, kXOR, BoolTerm);
         end;
       end;
-    {
-    Boolean expressioný tanýmlayan grameri burda yazalým.
-    <b-expression> ::= <b-term> [<orop> <b-term>]*
-    <b-term>       ::= <not-factor> [AND <not-factor>]*
-    <not-factor>   ::= [NOT] <b-factor>
-    <b-factor>     ::= <b-literal> | <b-variable> | <relation>
-    <relation>     ::= | <expression> [<relop> <expression]
-    <expression>   ::= <term> [<addop> <term>]*
-    <term>         ::= <signed factor> [<mulop> factor]*
-    <signed factor>::= [<addop>] <factor>
-    <factor>       ::= <integer> | <variable> | (<b-expression>)
-    }
+    Trace('-BoolExpr');
   end;
+
 
 function ParseFactor: Node;
   begin
+    Trace('+Factor');
     SkipWhite;
     if Look = '(' then
       begin
 	Match('(');
-	BoolExpression;
+	ParseBoolExpr;
 	Match(')');
       end
     else if IsAlpha(Look) then result := NewVarExpr(GetName)
     else if IsDigit(Look) then result := NewIntExpr(GetNum)
     else if Look = '-' then result := NewUnOp(kNEG, ParseFactor);
+    Trace('-Factor');
   end;
 
 function ParseTerm: Node;
@@ -246,7 +256,7 @@ function ParseTerm: Node;
 function ParseExpr: Node;
   var op : char;
   begin
-    result := ParseTerm;
+    result := ParseTerm;  SkipWhite;
     while IsAddop(Look) do
       begin
 	op := Look; GetChar;
@@ -257,13 +267,6 @@ function ParseExpr: Node;
       end;
   end;
 
-
-// keyword consumes a word and checks that it matches the expected string s.
-function keyword(s:string; out tok:string) : boolean;
-  begin
-    tok := GetName;
-    result := tok = s;
-  end;
 
 // -- statements ---
 
@@ -277,48 +280,61 @@ function ParseAssignStmt : Node;
 function ParseIfStmt : Node;
   var condition, thenPart, elsePart : Node;
   begin
-    condition := nil; {TODO: }BoolExpression;
+    condition := ParseBoolExpr;
     thenPart := ParseBlock;
     elsePart := nil; //  TODO: parse 'ELSE'
     result := NewIfStmt(condition, thenPart, elsePart);
   end;
 
-function ParseWriteStmt : Node;
+function ParseWhileStmt : Node;
+  var cond, body : Node;
   begin
-    result := NewWriteStmt(ParseExpr);
+    trace('ParseWhileStmt.cond');
+    cond := ParseBoolExpr;
+    trace('ParseWhileStmt.body');
+    keyword('DO');
+    body := ParseBlock;
+    result := NewWhileStmt(cond,body);
+  end;
+
+function ParseWriteStmt : Node;
+  begin result := NewWriteStmt(ParseExpr);
   end;
 
 function ParseStmt : Node;
-  begin
+  begin trace('ParseStmt:' + Token);
     case Token of
-      'IF'	: result := ParseIfStmt;
-      'WRITE'	: result := ParseWriteStmt;
+      'IF'    : result := ParseIfStmt;
+      'WHILE' : result := ParseWhileStmt;
+      'WRITE' : result := ParseWriteStmt;
       else result := ParseAssignStmt;
     end;
-    Token := GetName;
+    GetName;
   end;
 
-function ParseBlock : Node;
-  begin
-    Token := GetName;
-    if Token = 'END' then
-      result := NewEmptyStmt
-    else
-      begin
-        result := ParseStmt;
-        while (Token <> 'END') and (Token <> 'ENDIF') do
-          result := NewBinOp(result, kSEQ, ParseStmt);
-      end;
-  end;
 
 
 // -- top level parsing rules ---
 
+function ParseBlock : Node;
+  function AtEndToken:boolean;
+    begin result := (token = 'END') or (token='ENDIF') or (token='ENDWHILE')
+    end;
+  begin
+    trace('ParseBlock');
+    GetName;
+    if AtEndToken then result := NewEmptyStmt
+    else
+      begin
+        result := ParseStmt;
+        while not AtEndToken do result := NewBinOp(result, kSEQ, ParseStmt);
+      end;
+  end;
+
 function ParseProgram : Node;
   var decls, block : node;
   begin
-    token := GetName;
-    if token = 'BEGIN' then block := ParseBlock else Expected('BEGIN');
+    if GetName = 'BEGIN' then block := ParseBlock else Expected('BEGIN');
     result := NewProgram(decls, block);
   end;
 

@@ -14,6 +14,7 @@ function eval(n : Node; var e : Env) : variant;
       kWRITE : Writeln(eval(n^.expr, e));
       kINT   : result := n^.int;
       kADD   : result := eval(n^.arg0, e) + eval(n^.arg1, e);
+      kLT    : result := Ord(eval(n^.arg0, e) < eval(n^.arg1, e));
       kVAR   : result := GetVar(e, n^.id);
       kPROG  : result := eval(n^.block, e);
       kSEQ   : begin
@@ -21,6 +22,7 @@ function eval(n : Node; var e : Env) : variant;
                  result := eval(n^.arg1, e);
                end;
       kASSIGN: e := SetVar(e, n^.assignId, eval(n^.assignVal, e));
+      kWHILE : while eval(n^.whileCond, e) = 1 do eval(n^.whileBody, e);
     end;
   end;
 

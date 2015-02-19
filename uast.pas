@@ -1,7 +1,6 @@
 {$mode objfpc}
 unit uAST; // abstract syntax tree for simple interpreter
 interface uses utools;
-
   type
     Node      = ^NodeData;
     NodeKind  = ( kINT, kBOOL, kSTR, kVAR,
@@ -10,7 +9,7 @@ interface uses utools;
                   kXOR, kAND, kOR,
                   kLT, KGT, kEQ, kNE, kLE, KGE,
                   kSEQ, kOK,  // sequences of statements, empty statement
-                  kWRITE, kIF, kASSIGN, kBLOCK, kPROG );
+                  kWRITE, kIF, kWHILE, kASSIGN, kBLOCK, kPROG );
     UnOp      = kNEG .. kNOT; // unary operators (1 argument)
     BinOp     = kADD .. kSEQ; // binary operators (2 arguments)
     DataKind  = kINT .. kVAR;
@@ -21,6 +20,7 @@ interface uses utools;
                   kADD..kSEQ : ( arg0, arg1 : Node );
                   kVAR   : ( id : string );
                   kWRITE : ( expr : Node );
+                  kWHILE : ( whileCond, whileBody : Node );
                   kASSIGN: ( assignId : string; assignVal : Node );
                   kPROG  : ( vars, block : Node );
                 end;
@@ -28,11 +28,12 @@ interface uses utools;
   function NewIntExpr(int : Integer) : Node;
   function NewVarExpr(id : string) : Node;
 
-  function NewBinOp( x : Node; op: BinOp; y : Node ) : Node;
-  function NewUnOp( op : UnOp; y : Node ) : Node;
+  function NewBinOp(x : Node; op: BinOp; y : Node) : Node;
+  function NewUnOp(op : UnOp; y : Node) : Node;
 
   function NewIfStmt(condition, thenPart, elsePart : Node) : Node;
-  function NewWriteStmt( expr : Node ) : Node;
+  function NewWriteStmt(expr : Node) : Node;
+  function NewWhileStmt(cond, body : Node) : Node;
   function NewAssignStmt(id : string; val : Node) : Node;
   function NewEmptyStmt : Node;
 
@@ -70,6 +71,12 @@ implementation
     begin New(result, kWRITE); result^.expr := expr;
     end;
 
+  function NewWhileStmt(cond, body : Node) : Node;
+    begin
+      New(result, kWHILE);
+      result^.whileCond := cond; result^.whileBody := body;
+    end;
+
   function NewAssignStmt(id : string; val : Node) : Node;
     begin New(result, kASSIGN); result^.assignId := id; result^.assignVal := val;
     end;
@@ -82,6 +89,9 @@ implementation
     begin New(result, kPROG); result^.vars := vars; result^.block := block;
     end;
 
+  const kBinChars : array[BinOp] of string =
+    ('+','-','*','/','~','&','|','<','>',' = ','#','≤','≥',';');
+
   procedure DumpNode(n : Node; depth:integer=0);
     procedure indent; var j: integer;
       begin if depth>0 then for j:=0 to depth do write(' ')
@@ -89,9 +99,15 @@ implementation
     begin
       if n = nil then write('<NIL>')
       else if not Assigned(n) then write('<BAD>')
+      else if (n^.kind) in [kADD..kGE] then
+	begin
+	  write('('); DumpNode(n^.arg0);
+	  write(' ', kBinChars[n^.kind], ' ');
+	  DumpNode(n^.arg1); write(')');
+	end
       else case n^.kind of
-        kINT   : write(n^.int);
-        kVAR   : write(n^.id);
+        kINT : write(n^.int);
+        kVAR : write(n^.id);
         kWRITE : begin
                    indent; write('[write '); DumpNode(n^.expr); writeln(']')
                  end;
@@ -99,12 +115,12 @@ implementation
                    indent; write('[', n^.assignId, ' := ');
                    DumpNode(n^.assignVal); writeln(']')
                  end;
-        kSEQ : begin DumpNode(n^.arg0); DumpNode(n^.arg1); end;
-        kPROG : begin
-                  indent; writeln('[prog ');
-                  DumpNode(n^.vars, depth+1); DumpNode(n^.block, depth+1);
-                  writeln(']');
-                end;
+        kSEQ : begin DumpNode(n^.arg0, depth); DumpNode(n^.arg1, depth); end;
+	kWHILE : begin indent;
+                   write('[while '); DumpNode(n^.whileCond); writeln(' do ');
+                   DumpNode(n^.whileBody, depth+1); writeln(']');
+                 end;
+        kPROG : DumpNode(n^.block, depth);
         otherwise writeln('<UNKNOWN: ', n^.kind ,'>');
       end;
     end;
