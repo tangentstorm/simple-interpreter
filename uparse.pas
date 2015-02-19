@@ -30,19 +30,19 @@ procedure GetChar;
 
 procedure Error(s: string);
   begin
-   WriteLn;
-   WriteLn(^G, 'Error: ', s, '.');
+    WriteLn;
+    WriteLn(^G, 'Error: ', s, '.');
   end;
 
 procedure Abort(s: string);
   begin
-   Error(s);
-   Halt;
+    Error(s);
+    Halt;
   end;
 
 procedure Expected(s: string);
   begin
-   Abort(s + ' Expected');
+    Abort(s + ' Expected');
   end;
 
 function IsAlpha(c: char): boolean;
@@ -87,7 +87,7 @@ function GetName: string;
     Token := '';
     if not IsAlpha(Look) then
       begin
-	Write('Saw "', Look ,'",but'); Expected('Name');
+	Write('Saw "', Look ,'", but:'); Expected('Name');
       end;
     while IsAlNum(Look) do
       begin
@@ -138,34 +138,47 @@ procedure Keyword(s : string);
   end;
 
 
-function IsOrop(c: char): boolean;
-begin
-   IsOrop := c in ['|', '~'];
-end;
-
-function IsRelop(c: char): boolean;
+function IsOrOp(c: char): boolean;
   begin
-   IsRelop := c in ['=', '#', '<', '>'];
+    IsOrop := c in ['|', '~'];
+  end;
+
+function IsRelOp(c: char): boolean;
+  begin
+    IsRelop := c in ['=', '#', '<', '>'];
+  end;
+
+function Equals:Node;
+  begin Match('='); result := Expr;
+  end;
+
+function Less:Node;
+  begin Match('<'); result := Expr;
+  end;
+
+function Greater:Node;
+  begin Match('>'); result := Expr;
+  end;
+
+function NotEquals:Node;
+  begin Match('#'); result := Expr;
   end;
 
 function Relation: Node;
-  var op : char;
   begin
     result := Expr;
     if IsRelop(Look) then
-      begin
-	op := Look; GetChar;
-	case op of
-	  // TODO : <=, >=, == using Look
-	  '=' : result := NewBinOp(result, kEQ, Expr);
-	  '<' : result := NewBinOp(result, kLT, Expr);
-	  '>' : result := NewBinOp(result, kGT, Expr);
-	  '#' : result := NewBinOp(result, kNE, Expr);
-	end;
+      case Look of
+	// TODO : <=, >=, == using Look
+	'=' : result := NewBinOp(result, kEQ, Equals);
+	'<' : result := NewBinOp(result, kLT, Less);
+	'>' : result := NewBinOp(result, kGT, Greater);
+	'#' : result := NewBinOp(result, kNE, NotEquals);
       end;
     // TODO: else Expected('relation')
   end;
 
+
 function BoolFactor: Node;
   begin
     SkipWhite;
@@ -173,15 +186,10 @@ function BoolFactor: Node;
       begin
         Match('('); result := Relation; Match(')');
       end
-    else if IsAlNum(Look) then
-      begin {TODO: Bu kýsmý fix et}
-        //TempStr := GetName;
-        //if UpCase(TempStr) = 'TRUE'     then BoolFactor := true;
-        //if UpCase(TempStr) = 'FALSE'    then BoolFactor := false;
-	result := Relation;
-      end;
+    else if IsAlNum(Look) then result := Relation;
+    // 'true' and 'false' can be added to the initial environment, if desired..
   end;
-
+
 function NotFactor: Node;
   begin
     if Look = '!' then
@@ -192,6 +200,7 @@ function NotFactor: Node;
     else result := BoolFactor
   end;
 
+
 function BoolTerm: Node;
   begin
     Trace('+BoolTerm');
@@ -204,18 +213,22 @@ function BoolTerm: Node;
     Trace('-BoolTerm');
   end;
 
+function OrExpr : Node;
+  begin Match('|'); result := BoolTerm;
+  end;
+
+function XorExpr : Node;
+  begin Match('~'); result := BoolTerm;
+  end;
+
 function BoolExpr: Node;
-  var op : char;
   begin
     Trace('+BoolExpr');
     result := BoolTerm;
     while IsOrOp(Look) do
-      op := Look; //GetChar;
-      begin
-        case op of
-            '|': result := NewBinOp(result, kOR,  BoolTerm);
-            '~': result := NewBinOp(result, kXOR, BoolTerm);
-        end;
+      case Look of
+	'|' : result := NewBinOp(result, kOR,  OrExpr);
+	'~' : result := NewBinOp(result, kXOR, XorExpr);
       end;
     Trace('-BoolExpr');
   end;
@@ -241,36 +254,49 @@ function Factor: Node;
     Trace('-Factor');
   end;
 
+
+function Multiply : Node;
+  begin Match('*'); result := Factor;
+  end;
+
+function Divide : Node;
+  begin Match('/'); result := Factor;
+  end;
+
+function Modulo : Node;
+  begin Match('%'); result := Factor;
+  end;
+
 function Term: Node;
-  var op : char;
   begin
     Trace('+Term');
     result := Factor;
     while IsMulop(Look) do
-      begin
-	op := Look; GetChar;
-	case op of
-	  '*' : result := NewBinOp(result, kMUL, Factor);
-	  '/' : result := NewBinOp(result, kDIV, Factor);
-	  '%' : result := NewBinOp(result, kMOD, Factor);
-	end;
+      case Look of
+	'*' : result := NewBinOp(result, kMUL, Multiply);
+	'/' : result := NewBinOp(result, kDIV, Divide);
+	'%' : result := NewBinOp(result, kMOD, Modulo);
       end;
     Trace('-Term');
   end;
 
 
+function Add : Node;
+  begin Match('+'); result := Term;
+  end;
+
+function Subtract : Node;
+  begin Match('-'); result := Term;
+  end;
+
 function Expr: Node;
-  var op : char;
   begin
     Trace('+Expr');
     result := Term;  SkipWhite;
     while IsAddop(Look) do
-      begin
-	op := Look; GetChar;
-	case op of
-	  '+' : result := NewBinOp(result, kADD, Term);
-	  '-' : result := NewBinOp(result, kSUB, Term);
-	end;
+      case Look of
+	'+' : result := NewBinOp(result, kADD, Add);
+	'-' : result := NewBinOp(result, kSUB, Subtract);
       end;
     Trace('-Expr');
   end;
