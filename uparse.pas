@@ -149,7 +149,10 @@ function IsRelOp(c: char): boolean;
   end;
 
 function Equals:Node;
-  begin Match('='); result := Expr;
+  begin
+    Match('=');
+    if Look='=' then begin Match('='); result := Expr; end
+    else Abort('expected == but saw =.');
   end;
 
 function Less:Node;
@@ -169,13 +172,12 @@ function Relation: Node;
     result := Expr;
     if IsRelop(Look) then
       case Look of
-	// TODO : <=, >=, == using Look
+	// TODO : <=, >=
 	'=' : result := NewBinOp(result, kEQ, Equals);
 	'<' : result := NewBinOp(result, kLT, Less);
 	'>' : result := NewBinOp(result, kGT, Greater);
 	'#' : result := NewBinOp(result, kNE, NotEquals);
       end;
-    // TODO: else Expected('relation')
   end;
 
 
