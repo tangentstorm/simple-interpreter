@@ -8,23 +8,23 @@ interface uses utools;
                   kADD, kSUB, kMUL, kDIV,
                   kXOR, kAND, kOR,
                   kLT, KGT, kEQ, kNE, kLE, KGE,
-                  kSEQ, kOK,  // sequences of statements, empty statement
+                  kSEQ, // sequences of statements
                   kWRITE, kIF, kWHILE, kASSIGN, kBLOCK, kPROG );
     UnOp      = kNEG .. kNOT; // unary operators (1 argument)
     BinOp     = kADD .. kSEQ; // binary operators (2 arguments)
     DataKind  = kINT .. kVAR;
     NodeData  = record case kind : NodeKind of
-                  kOK    : ();
                   kINT   : ( int : integer );
                   kNEG, kNOT : ( arg : Node );
                   kADD..kSEQ : ( arg0, arg1 : Node );
                   kVAR   : ( id : string );
                   kWRITE : ( expr : Node );
+                  kIF    : ( condition, thenPart, elsePart : Node );
                   kWHILE : ( whileCond, whileBody : Node );
                   kASSIGN: ( assignId : string; assignVal : Node );
                   kPROG  : ( vars, block : Node );
                 end;
-
+  const EmptyStmt = nil;
   function NewIntExpr(int : Integer) : Node;
   function NewVarExpr(id : string) : Node;
 
@@ -35,8 +35,6 @@ interface uses utools;
   function NewWriteStmt(expr : Node) : Node;
   function NewWhileStmt(cond, body : Node) : Node;
   function NewAssignStmt(id : string; val : Node) : Node;
-  function NewEmptyStmt : Node;
-
   function NewProgram(vars, block : Node) : Node;
 
   procedure DumpNode(n:Node; depth:integer=0); // for debugging
@@ -65,7 +63,9 @@ implementation
     end;
 
   function NewIfStmt(condition, thenPart, elsePart: Node) : Node;
-    begin result := nil end;
+    begin New(result, kIF); result^.condition := condition;
+          result^.thenPart := thenPart; result^.elsePart := elsePart;
+    end;
 
   function NewWriteStmt( expr : Node ) : Node;
     begin New(result, kWRITE); result^.expr := expr;
@@ -81,10 +81,6 @@ implementation
     begin New(result, kASSIGN); result^.assignId := id; result^.assignVal := val;
     end;
 
-  function NewEmptyStmt : Node;
-    begin New(result, kOK);
-    end;
-
   function NewProgram(vars, block : Node) : Node;
     begin New(result, kPROG); result^.vars := vars; result^.block := block;
     end;
@@ -97,7 +93,7 @@ implementation
       begin if depth>0 then for j:=0 to depth do write(' ')
       end;
     begin
-      if n = nil then write('<NIL>')
+      if n = EmptyStmt then write('OK')
       else if not Assigned(n) then write('<BAD>')
       else if (n^.kind) in [kADD..kGE] then
 	begin
@@ -120,6 +116,12 @@ implementation
                    write('[while '); DumpNode(n^.whileCond); writeln(' do ');
                    DumpNode(n^.whileBody, depth+1); writeln(']');
                  end;
+	kIF : begin
+                indent; write('[if '); DumpNode(n^.condition); writeln;
+                indent; write(' then '); DumpNode(n^.thenPart, depth+1);
+                indent; write(' else '); DumpNode(n^.elsePart, depth+1);
+                writeln(']');
+              end;
         kPROG : DumpNode(n^.block, depth);
         otherwise writeln('<UNKNOWN: ', n^.kind ,'>');
       end;

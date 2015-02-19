@@ -10,7 +10,7 @@ function eval(n : Node; var e : Env) : variant;
   begin
     // WriteLn('evaluating node: ', n^.kind); DumpNode(n);
     result := null;
-    case n^.kind of
+    if n <> EmptyStmt then case n^.kind of
       kWRITE : Writeln(eval(n^.expr, e));
       kINT   : result := n^.int;
       kADD   : result := eval(n^.arg0, e) + eval(n^.arg1, e);
@@ -23,6 +23,8 @@ function eval(n : Node; var e : Env) : variant;
                end;
       kASSIGN: e := SetVar(e, n^.assignId, eval(n^.assignVal, e));
       kWHILE : while eval(n^.whileCond, e) = 1 do eval(n^.whileBody, e);
+      kIF : if eval(n^.condition, e) = 1 then eval(n^.thenPart, e)
+	    else eval(n^.elsePart, e);
     end;
   end;
 

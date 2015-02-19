@@ -283,7 +283,8 @@ function ParseIfStmt : Node;
     condition := ParseBoolExpr;
     keyword('THEN');
     thenPart := ParseBlock(['ELSE', 'ENDIF']);
-    if token = 'ELSE' then elsePart := ParseBlock(['ENDIF']) else {ok};
+    if token = 'ELSE' then elsePart := ParseBlock(['ENDIF'])
+    else elsePart := EmptyStmt;
     if token = 'ENDIF' then {ok} else expected('ENDIF');
     result := NewIfStmt(condition, thenPart, elsePart);
   end;
@@ -329,7 +330,7 @@ function ParseBlock(EndTokens : array Of string) : Node;
   begin
     trace('ParseBlock');
     GetName;
-    if AtEndToken then result := NewEmptyStmt
+    if AtEndToken then result := EmptyStmt
     else
       begin
         result := ParseStmt;
