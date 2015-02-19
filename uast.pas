@@ -22,7 +22,7 @@ interface uses utools;
                   kIF    : ( condition, thenPart, elsePart : Node );
                   kWHILE : ( whileCond, whileBody : Node );
                   kASSIGN: ( assignId : string; assignVal : Node );
-                  kPROG  : ( vars, block : Node );
+                  kPROG  : ( block : Node );
                 end;
   const EmptyStmt = nil;
   function NewIntExpr(int : Integer) : Node;
@@ -35,7 +35,7 @@ interface uses utools;
   function NewWriteStmt(expr : Node) : Node;
   function NewWhileStmt(cond, body : Node) : Node;
   function NewAssignStmt(id : string; val : Node) : Node;
-  function NewProgram(vars, block : Node) : Node;
+  function NewProgram(block : Node) : Node;
 
   procedure DumpNode(n:Node; depth:integer=0); // for debugging
 
@@ -81,8 +81,8 @@ implementation
     begin New(result, kASSIGN); result^.assignId := id; result^.assignVal := val;
     end;
 
-  function NewProgram(vars, block : Node) : Node;
-    begin New(result, kPROG); result^.vars := vars; result^.block := block;
+  function NewProgram(block : Node) : Node;
+    begin New(result, kPROG); result^.block := block;
     end;
 
   const kBinChars : array[BinOp] of string =

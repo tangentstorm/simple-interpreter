@@ -339,11 +339,11 @@ function ParseBlock(EndTokens : array Of string) : Node;
   end;
 
 function ParseProgram : Node;
-  var decls, block : node;
+  var block : node;
   begin
     if GetName = 'BEGIN' then block := ParseBlock(['END'])
     else Expected('BEGIN');
-    result := NewProgram(decls, block);
+    result := NewProgram(block);
   end;
 
 
