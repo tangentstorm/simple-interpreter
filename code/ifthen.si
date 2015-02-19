@@ -1,0 +1,4 @@
+begin
+  if 10<20 then write 10 else write 20 endif
+  if 10>20 then write 10 else write 20 endif
+end
