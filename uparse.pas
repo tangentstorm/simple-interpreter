@@ -6,6 +6,7 @@ interface uses uast, utools, sysutils;
   function ParseProgram : Node;
   function ParseBlock : Node;
   function ParseExpr: Node;
+  var doTrace : boolean = false; // for debugging. enable with -t
 
 implementation
 
@@ -18,7 +19,7 @@ var Look: char;
 var Token: String;
 
 procedure trace(s : string); inline;
-  begin //WriteLn(s);
+  begin if doTrace then Writeln(s)
   end;
 
 procedure GetChar;
