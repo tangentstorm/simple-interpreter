@@ -15,6 +15,7 @@ implementation
 	result := kBinChars[n^.kind]
       else if n^.kind = kINT then WriteStr(result, n^.int)
       else if n^.kind = kVAR then result := n^.id
+      else if n^.kind = kASSIGN then result := n^.assignId + ' :='
       else begin
 	WriteStr(caption, n^.kind); // eg kWRITE
 	Delete(caption, 1, 1);      // strip off the 'k'
