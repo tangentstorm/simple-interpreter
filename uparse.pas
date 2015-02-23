@@ -156,15 +156,15 @@ function Equals:Node;
   end;
 
 function Less:Node;
-  begin Match('<'); result := Expr;
+  begin Match('<'); result := Expr; SkipWhite;
   end;
 
 function Greater:Node;
-  begin Match('>'); result := Expr;
+  begin Match('>'); result := Expr; SkipWhite;
   end;
 
 function NotEquals:Node;
-  begin Match('#'); result := Expr;
+  begin Match('#'); result := Expr; SkipWhite;
   end;
 
 function Relation: Node;
@@ -258,21 +258,21 @@ function Factor: Node;
 
 
 function Multiply : Node;
-  begin Match('*'); result := Factor;
+  begin Match('*'); result := Factor; SkipWhite;
   end;
 
 function Divide : Node;
-  begin Match('/'); result := Factor;
+  begin Match('/'); result := Factor; SkipWhite;
   end;
 
 function Modulo : Node;
-  begin Match('%'); result := Factor;
+  begin Match('%'); result := Factor; SkipWhite;
   end;
 
 function Term: Node;
   begin
     Trace('+Term');
-    result := Factor;
+    result := Factor; SkipWhite;
     while IsMulop(Look) do
       case Look of
 	'*' : result := NewBinOp(result, kMUL, Multiply);
@@ -284,11 +284,11 @@ function Term: Node;
 
 
 function Add : Node;
-  begin Match('+'); result := Term;
+  begin Match('+'); result := Term; SkipWhite;
   end;
 
 function Subtract : Node;
-  begin Match('-'); result := Term;
+  begin Match('-'); result := Term; SkipWhite;
   end;
 
 function Expr: Node;
